@@ -76,14 +76,13 @@ jobs:
       # Step 9: Execute Gradle build
       - name: Run Gradle build
         run: |
-          npx cap sync android
           cd android
           ./gradlew build
 
       # Step 10: Compress build output
       - name: Compress build files
         run: |
-          cd android/app/build/outputs/  # 假设构建的 APK 文件在这个路径下
+          cd android/app/build/outputs  # 假设构建的 APK 文件在这个路径下
           zip -r release-build.zip *  # 压缩所有构建的文件
 
       # Step 11: Create Git tag and push it
@@ -103,7 +102,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}  # 从 "Create Git tag" 步骤中获取标签名称
+          tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}  # 获取创建的标签
           files: android/app/build/outputs/release-build.zip  # 上传压缩包
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
