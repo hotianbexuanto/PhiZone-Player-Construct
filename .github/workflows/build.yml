@@ -1,0 +1,93 @@
+name: Build and Release App with pnpm, Gradle, and GitHub Releases
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 作为执行环境
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Setup Node.js and pnpm
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        run: npm install -g pnpm  # 安装 pnpm
+
+      # Step 3: Install dependencies with pnpm
+      - name: Install dependencies
+        run: pnpm install  # 使用 pnpm 安装依赖
+
+      # Step 4: Build the project with pnpm
+      - name: Build project
+        run: pnpm build  # 使用 pnpm build 构建项目
+
+      # Step 5: Setup JDK 17 (for Gradle)
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Step 6: Setup Android SDK
+      - name: Setup Android SDK
+        run: |
+          sudo apt update
+          sudo apt install -y openjdk-17-jdk wget unzip
+          mkdir -p $HOME/android-sdk
+          cd $HOME/android-sdk
+          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+          unzip commandlinetools-linux-8512546_latest.zip
+          rm commandlinetools-linux-8512546_latest.zip
+          yes | $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
+          $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;30.0.3" "platforms;android-30"
+        env:
+          ANDROID_HOME: $HOME/android-sdk
+
+      # Step 7: Give gradlew execute permission
+      - name: Give gradlew execute permission
+        run: chmod +x android/gradlew  # 给 gradlew 添加执行权限
+
+      # Step 8: Cache Gradle dependencies
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Step 9: Execute Gradle build
+      - name: Run Gradle build
+        run: |
+          npx cap sync android
+          cd android
+          ./gradlew build
+
+      # Step 10: Compress build output
+      - name: Compress build files
+        run: |
+          cd android/app/build/outputs/  # 假设构建的 APK 文件在这个路径下
+          zip -r release-build.zip *  # 压缩所有构建的文件
+
+      # Step 11: Create a new GitHub release
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: android/app/build/outputs/release-build.zip  # 上传压缩包
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
+
