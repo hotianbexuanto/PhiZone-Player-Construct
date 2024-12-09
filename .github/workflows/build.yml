@@ -1,4 +1,4 @@
-name: Build and Release App with pnpm, Gradle, and GitHub Releases
+name: Build App with pnpm and Gradle
 
 on:
   push:
@@ -7,10 +7,6 @@ on:
   pull_request:
     branches:
       - main
-
-permissions:
-  contents: write  # 允许推送标签和更改仓库内容
-  id-token: write  # 如果需要与其他身份验证服务交互
 
 jobs:
   build:
@@ -62,7 +58,7 @@ jobs:
 
       # Step 7: Give gradlew execute permission
       - name: Give gradlew execute permission
-        run: chmod +x android/gradlew  # 给 gradlew 添加执行权限
+        run: chmod +x android/gradlew
 
       # Step 8: Cache Gradle dependencies
       - name: Cache Gradle dependencies
@@ -76,33 +72,33 @@ jobs:
       # Step 9: Execute Gradle build
       - name: Run Gradle build
         run: |
+          npx cap sync android
           cd android
           ./gradlew build
 
       # Step 10: Compress build output
       - name: Compress build files
         run: |
-          cd android/app/build/outputs  # 假设构建的 APK 文件在这个路径下
-          zip -r release-build.zip *  # 压缩所有构建的文件
+          zip -r PhiZone-$(date +'%Y%m%d%H%M%S').zip android/app/build/
 
-      # Step 11: Create Git tag and push it
-      - name: Create Git tag
-        id: create_tag
+      # Step 11: Check if the 'dev' tag exists
+      - name: Check if 'dev' tag exists
+        id: check_tag
         run: |
-          # 生成标签名称（例如使用日期时间戳作为版本号）
-          TAG_NAME="v$(date +'%Y%m%d%H%M%S')"  # 使用日期时间戳作为标签名
-          git tag $TAG_NAME
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git  # 设置远程仓库 URL 使用 token 进行身份验证
-          git push origin $TAG_NAME  # 将标签推送到远程仓库
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
+          TAG_EXISTS=$(git tag -l "dev")
+          echo "TAG_EXISTS=$TAG_EXISTS" >> $GITHUB_ENV
 
-      # Step 12: Create GitHub Release and upload the zip
-      - name: Create GitHub Release
-        id: create_release
+      # Step 12: Create 'dev' tag if it does not exist
+      - name: Create 'dev' tag if it does not exist
+        if: env.TAG_EXISTS == ''
+        run: |
+          git tag dev
+          git push origin dev
+
+      # Step 13: Upload release to GitHub Releases
+      - name: Upload Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}  # 获取创建的标签
-          files: android/app/build/outputs/release-build.zip  # 上传压缩包
+          files: PhiZone-$(date +'%Y%m%d%H%M%S').zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
