@@ -79,10 +79,14 @@ jobs:
           cd android
           ./gradlew build
 
-      # Step 10: Compress build output
+      # Step 10: Compress build output and save filename to variable
       - name: Compress build files
+        id: zip
         run: |
-          zip -r PhiZone-$(date +'%Y%m%d%H%M%S').zip android/app/build/
+          BUILD_TIME=$(date +'%Y%m%d%H%M%S')
+          ZIP_FILE="PhiZone-${BUILD_TIME}.zip"
+          zip -r $ZIP_FILE android/app/build/
+          echo "ZIP_FILE=${ZIP_FILE}" >> $GITHUB_ENV
 
       # Step 11: Create a timestamped tag (dev-YYYYMMDDHH format)
       - name: Create 'dev' tag with timestamp
@@ -111,6 +115,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.TAG_NAME }}  # 使用刚刚创建的标签
-          files: PhiZone-$(date +'%Y%m%d%H%M%S').zip
+          files: ${{ env.ZIP_FILE }}  # 上传刚刚创建的压缩文件
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
