@@ -72,7 +72,6 @@ jobs:
       # Step 9: Execute Gradle build
       - name: Run Gradle build
         run: |
-          npx cap sync android
           cd android
           ./gradlew build
 
@@ -82,12 +81,22 @@ jobs:
           cd android/app/build/outputs/  # 假设构建的 APK 文件在这个路径下
           zip -r release-build.zip *  # 压缩所有构建的文件
 
-      # Step 11: Create a new GitHub release
+      # Step 11: Create a new Git tag
+      - name: Create Git tag
+        run: |
+          # 生成一个新的标签（你可以根据需要自定义版本号）
+          TAG_NAME="v$(date +'%Y%m%d%H%M%S')"  # 使用日期时间戳作为标签名
+          git tag $TAG_NAME
+          git push origin $TAG_NAME  # 将标签推送到远程仓库
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
+
+      # Step 12: Create GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.create_tag.outputs.tag }}  # 使用创建的标签
           files: android/app/build/outputs/release-build.zip  # 上传压缩包
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
-
