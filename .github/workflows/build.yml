@@ -86,20 +86,24 @@ jobs:
           cd android/app/build/outputs/  # 假设构建的 APK 文件在这个路径下
           zip -r release-build.zip *  # 压缩所有构建的文件
 
-      # Step 11: Create Git tag
+      # Step 11: Create Git tag and push it
       - name: Create Git tag
+        id: create_tag
         run: |
+          # 生成标签名称（例如使用日期时间戳作为版本号）
           TAG_NAME="v$(date +'%Y%m%d%H%M%S')"  # 使用日期时间戳作为标签名
           git tag $TAG_NAME
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git  # 设置远程仓库 URL 使用 token 进行身份验证
           git push origin $TAG_NAME  # 将标签推送到远程仓库
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
 
-      # Step 12: Create GitHub Release
+      # Step 12: Create GitHub Release and upload the zip
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.create_tag.outputs.tag }}  # 使用创建的标签
+          tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}  # 从 "Create Git tag" 步骤中获取标签名称
           files: android/app/build/outputs/release-build.zip  # 上传压缩包
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
