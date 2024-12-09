@@ -82,26 +82,22 @@ jobs:
       # Step 10: Compress build output
       - name: Compress build files
         run: |
-          BUILD_DATE=$(date +'%Y%m%d%H')  # 获取当前时间，格式为：2024120910
-          ZIP_FILE="PhiZone-${BUILD_DATE}.zip"
-          zip -r $ZIP_FILE android/app/build/
-          echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_ENV  # 将 zip 文件名保存到环境变量中
+          zip -r PhiZone-$(date +'%Y%m%d%H%M%S').zip android/app/build/
 
-      # Step 11: Create a tag with the format dev-YYYYMMDDHH
+      # Step 11: Create a timestamped tag (dev-YYYYMMDDHH format)
       - name: Create 'dev' tag with timestamp
         id: create_tag
         run: |
-          BUILD_DATE=$(date +'%Y%m%d%H')  # 获取当前时间，格式为：2024120910
-          TAG_NAME="dev-${BUILD_DATE}"
+          TAG_NAME="dev-$(date +'%Y%m%d%H')"
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
           git tag $TAG_NAME
           git push origin $TAG_NAME
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV  # 保存标签名
 
       # Step 12: Upload release to GitHub Releases
       - name: Upload Release
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ env.ZIP_FILE }}  # 使用环境变量中的文件名
+          tag_name: ${{ env.TAG_NAME }}  # 使用刚刚创建的标签
+          files: PhiZone-$(date +'%Y%m%d%H%M%S').zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
