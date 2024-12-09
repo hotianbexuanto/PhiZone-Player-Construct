@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write  # 允许推送标签和更改仓库内容
+  id-token: write  # 如果需要与其他身份验证服务交互
+
 jobs:
   build:
     runs-on: ubuntu-latest  # 使用最新的 Ubuntu 作为执行环境
@@ -82,15 +86,13 @@ jobs:
           cd android/app/build/outputs/  # 假设构建的 APK 文件在这个路径下
           zip -r release-build.zip *  # 压缩所有构建的文件
 
-      # Step 11: Create a new Git tag
+      # Step 11: Create Git tag
       - name: Create Git tag
         run: |
-          # 生成一个新的标签（你可以根据需要自定义版本号）
           TAG_NAME="v$(date +'%Y%m%d%H%M%S')"  # 使用日期时间戳作为标签名
           git tag $TAG_NAME
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git  # 设置远程仓库 URL 使用 token 进行身份验证
           git push origin $TAG_NAME  # 将标签推送到远程仓库
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 进行认证
 
       # Step 12: Create GitHub Release
       - name: Create GitHub Release
