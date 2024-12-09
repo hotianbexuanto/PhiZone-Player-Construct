@@ -75,6 +75,7 @@ jobs:
       # Step 9: Execute Gradle build
       - name: Run Gradle build
         run: |
+          npx cap sync android
           cd android
           ./gradlew build
 
