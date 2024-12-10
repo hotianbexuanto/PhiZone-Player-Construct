@@ -92,13 +92,13 @@ jobs:
       - name: Create 'dev' tag with timestamp
         id: create_tag
         run: |
-          TAG_NAME="dev-$(date +'%Y%m%d%H')"
+          TAG_NAME="dev-$(date +'%Y%m%d%H%M%S')"
           echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
           
           # Check if the tag already exists, and create a new one if it does
           TAG_EXISTS=$(git tag -l $TAG_NAME)
           if [ "$TAG_EXISTS" != "" ]; then
-            # If tag exists, modify the tag name by adding a suffix (e.g., dev-YYYYMMDDHH-1)
+            # If tag exists, modify the tag name by adding a suffix (e.g., dev-YYYYMMDDHHMM-1)
             SUFFIX=1
             NEW_TAG_NAME="${TAG_NAME}-${SUFFIX}"
             echo "New tag: $NEW_TAG_NAME"
