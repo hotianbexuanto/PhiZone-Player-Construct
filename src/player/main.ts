@@ -9,7 +9,7 @@ const config: Types.Core.GameConfig = {
   width: window.innerWidth * window.devicePixelRatio,
   height: window.innerHeight * window.devicePixelRatio,
   scale: {
-    mode: Scale.NONE,
+    mode: Scale.EXPAND,
     autoCenter: Scale.CENTER_BOTH,
   },
   backgroundColor: '#000000',
@@ -40,8 +40,8 @@ const start = (parent: string, sceneConfig: Config | null) => {
         Capacitor.getPlatform() !== 'web'
       ) {
         dimensions = {
-          width: window.screen.width * window.devicePixelRatio,
-          height: window.screen.height * window.devicePixelRatio,
+          width: Math.max(window.screen.width, window.screen.height) * window.devicePixelRatio,
+          height: Math.min(window.screen.width, window.screen.height) * window.devicePixelRatio,
         };
       }
       if (sceneConfig.preferences.aspectRatio !== null) {
@@ -49,8 +49,8 @@ const start = (parent: string, sceneConfig: Config | null) => {
         dimensions = fit(
           ratio[0],
           ratio[1],
-          window.screen.width * window.devicePixelRatio,
-          window.screen.height * window.devicePixelRatio,
+          Math.max(window.screen.width, window.screen.height) * window.devicePixelRatio,
+          Math.min(window.screen.width, window.screen.height) * window.devicePixelRatio,
           true,
         );
       }
@@ -72,7 +72,7 @@ const start = (parent: string, sceneConfig: Config | null) => {
   // @ts-expect-error - globalThis is not defined in TypeScript
   globalThis.__PHASER_GAME__ = game;
   game.scene.start('MainGame');
-  if (!config.scale || config.scale.mode === Scale.NONE) {
+  if (!config.scale || config.scale.mode === Scale.EXPAND) {
     window.onresize = () => {
       game.scale.resize(
         window.innerWidth * window.devicePixelRatio,

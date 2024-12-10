@@ -8,7 +8,6 @@ import {
   fit,
   getAudio,
   inferLevelType,
-  SUPPORTS_CANVAS_BLUR,
   calculatePrecedences,
   loadText,
   getSpritesheet,
@@ -160,8 +159,8 @@ export class Game extends Scene {
 
     this.load.image('asset-line.png', 'line.png');
     this.load.spritesheet('hit-effects', 'HitEffects.png', {
-      frameWidth: 256,
-      frameHeight: 256,
+      frameWidth: 350,
+      frameHeight: 350,
     });
 
     const { song, chart, illustration, assetNames, assetTypes, assets } = this._data.resources;
@@ -391,7 +390,7 @@ export class Game extends Scene {
       this._status === GameStatus.FINISHED ? this._song.duration : this._song.seek,
     );
     this.updateChart(this.beat, this.timeSec, time);
-    this.statistics.updateStat(delta);
+    this.statistics.updateDisplay(delta);
   }
 
   destroy() {
@@ -432,16 +431,6 @@ export class Game extends Scene {
       'illustration-background',
     ).setDepth(0);
     this.register(this._background);
-    if (!SUPPORTS_CANVAS_BLUR) {
-      this._background.preFX?.addBlur(
-        2,
-        8 * this._data.preferences.backgroundBlur,
-        8 * this._data.preferences.backgroundBlur,
-        1,
-        0xffffff,
-        24 * this._data.preferences.backgroundBlur,
-      );
-    }
     this.positionBackground(this._background);
   }
 
