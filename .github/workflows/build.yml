@@ -85,7 +85,7 @@ jobs:
         run: |
           BUILD_TIME=$(date +'%Y%m%d%H%M%S')
           ZIP_FILE="PhiZone-${BUILD_TIME}.zip"
-          zip -r $ZIP_FILE android/app/build/
+          zip -r $ZIP_FILE android/app/build/ build
           echo "ZIP_FILE=${ZIP_FILE}" >> $GITHUB_ENV
 
       # Step 11: Create a timestamped tag (dev-YYYYMMDDHH format)
