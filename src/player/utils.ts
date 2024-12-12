@@ -26,6 +26,7 @@ import { fixWebmDuration } from '@fix-webm-duration/fix';
 import { AndroidFullScreen } from '@awesome-cordova-plugins/android-full-screen';
 import { Capacitor } from '@capacitor/core';
 import 'context-filter-polyfill';
+import bezier from 'bezier-easing';
 
 const easingFunctions: ((x: number) => number)[] = [
   (x) => x,
@@ -366,10 +367,10 @@ export const getLineColor = (scene: Game): number => {
 export const getJudgmentColor = (type: JudgmentType): number => {
   switch (type) {
     case JudgmentType.PERFECT:
-      return 0xffffa9;
+      return 0xffeda2;
     case JudgmentType.GOOD_EARLY:
     case JudgmentType.GOOD_LATE:
-      return 0xc0f4ff;
+      return 0xb6e1ff;
     case JudgmentType.BAD:
       return 0x6b3b3a;
     default:
@@ -383,15 +384,20 @@ export const clamp = (num: number, lower: number, upper: number) => {
 
 export const easing = (
   type: number,
+  bezierPoints: number[] | undefined,
   x: number,
   easingLeft: number = 0,
   easingRight: number = 1,
 ): number => {
   x = clamp(x, 0, 1);
-  easingLeft = clamp(easingLeft, 0, 1);
-  easingRight = clamp(easingRight, 0, 1);
+  const useBezier = bezierPoints && bezierPoints.length >= 4;
+  const bezierFunc = useBezier
+    ? bezier(...(bezierPoints.slice(0, 4) as [number, number, number, number]))
+    : undefined;
+  easingLeft = useBezier ? 0 : clamp(easingLeft, 0, 1);
+  easingRight = useBezier ? 1 : clamp(easingRight, 0, 1);
   if (type <= 0 || type > easingFunctions.length) return x;
-  const func = easingFunctions[type - 1] ?? easingFunctions[0];
+  const func = bezierFunc ?? easingFunctions[type - 1] ?? easingFunctions[0];
   const progress = func(easingLeft + (easingRight - easingLeft) * x);
   const progressStart = func(easingLeft);
   const progressEnd = func(easingRight);
@@ -454,6 +460,7 @@ export const getValue = (
     event.end,
     easing(
       'easingType' in event ? event.easingType : 0,
+      'bezier' in event && event.bezier === 1 ? event.bezierPoints : undefined,
       (beat - event.startBeat) / (event.endBeat - event.startBeat),
       'easingLeft' in event ? event.easingLeft : 0,
       'easingRight' in event ? event.easingRight : 1,
