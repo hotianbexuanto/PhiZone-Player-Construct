@@ -15,6 +15,7 @@
   import { GameStatus, type Config } from './types';
   import { convertTime, getParams, outputRecording } from './utils';
   import { goto } from '$app/navigation';
+  import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 
   export let gameRef: GameReference;
 
@@ -169,7 +170,28 @@
     gameRef.scene?.destroy();
     gameRef.game?.destroy(true);
   });
+
+  const exit = () => {
+    if (!config || config.newTab) {
+      if ('__TAURI_INTERNALS__' in window) {
+        getCurrentWebviewWindow().close();
+      } else {
+        window.close();
+      }
+    } else {
+      goto('/');
+    }
+  };
 </script>
+
+<svelte:head>
+  <title>
+    {config?.metadata.title} [{config?.metadata.level !== null &&
+    config?.metadata.difficulty !== null
+      ? `${config?.metadata.level} ${config?.metadata.difficulty?.toFixed(0)}`
+      : config?.metadata.level}] | PhiZone Player
+  </title>
+</svelte:head>
 
 <div class="absolute inset-0 flex justify-center items-center pointer-events-none">
   <div
@@ -231,7 +253,7 @@
       </div>
     {/if}
     <button
-      class="btn btn-outline border-2 btn-lg text-2xl w-fit"
+      class="btn btn-outline border-2 btn-lg rounded-full text-2xl w-fit"
       on:click={() => {
         setTimeout(() => {
           showStart = false;
@@ -246,20 +268,8 @@
     <div class="flex flex-col gap-4 items-center">
       <h2 class="text-6xl font-bold">PAUSED</h2>
       <div class="flex gap-2">
-        <button
-          class="btn btn-outline border-2 btn-lg btn-circle trans"
-          on:click={() => {
-            if (
-              !config ||
-              (!('__TAURI_INTERNALS__' in window && config.fullscreen) && config.newTab)
-            ) {
-              window.close();
-            } else {
-              goto('/');
-            }
-          }}
-        >
-          {#if !config || (!('__TAURI_INTERNALS__' in window && config.fullscreen) && config.newTab)}
+        <button class="btn btn-outline border-2 btn-lg btn-circle trans" on:click={exit}>
+          {#if !config || config.newTab}
             <i class="fa-solid fa-xmark fa-xl"></i>
           {:else}
             <i class="fa-solid fa-house fa-xl"></i>
@@ -347,24 +357,33 @@
 {/if}
 
 {#if timeSec === duration}
-  <button
-    class="absolute bottom-5 right-5 btn btn-outline border-2 btn-lg btn-circle opacity-0 transition"
+  <div
+    class="absolute bottom-5 right-5 opacity-0 trans flex flex-col gap-4"
     class:opacity-100={status === GameStatus.FINISHED || stillLoading}
     class:pointer-events-none={status !== GameStatus.FINISHED && !stillLoading}
-    on:click={() => {
-      if (!config || (!('__TAURI_INTERNALS__' in window && config.fullscreen) && config.newTab)) {
-        window.close();
-      } else {
-        goto('/');
-      }
-    }}
   >
-    {#if !config || (!('__TAURI_INTERNALS__' in window && config.fullscreen) && config.newTab)}
-      <i class="fa-solid fa-xmark fa-xl"></i>
-    {:else}
-      <i class="fa-solid fa-house fa-xl"></i>
-    {/if}
-  </button>
+    <button
+      class="btn btn-outline border-2 btn-lg btn-circle"
+      aria-label="Restart"
+      on:click={() => {
+        status = GameStatus.PLAYING;
+        gameRef.scene?.restart();
+      }}
+    >
+      <i class="fa-solid fa-arrow-rotate-right fa-xl"></i>
+    </button>
+    <button
+      class="btn btn-outline border-2 btn-lg btn-circle"
+      aria-label={!config || config.newTab ? 'Close' : 'Home'}
+      on:click={exit}
+    >
+      {#if !config || config.newTab}
+        <i class="fa-solid fa-xmark fa-xl"></i>
+      {:else}
+        <i class="fa-solid fa-house fa-xl"></i>
+      {/if}
+    </button>
+  </div>
 {/if}
 
 <div id="player"></div>

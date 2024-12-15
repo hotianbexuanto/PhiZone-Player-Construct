@@ -11,7 +11,6 @@ export interface Config {
   record: boolean;
   autostart: boolean;
   newTab: boolean;
-  fullscreen: boolean;
 }
 
 export interface Resources {
@@ -265,6 +264,7 @@ export enum GameStatus {
   READY,
   ERROR,
   PLAYING,
+  SEEKING,
   PAUSED,
   FINISHED,
   DESTROYED,

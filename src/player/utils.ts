@@ -12,6 +12,8 @@ import {
   JudgmentType,
   type Bpm,
   type Config,
+  type PointerTap,
+  type PointerDrag,
   // type RecorderOptions,
 } from './types';
 import { EventBus } from './EventBus';
@@ -19,7 +21,7 @@ import { getFFmpeg, loadFFmpeg } from './ffmpeg';
 import type { Game } from './scenes/Game';
 import { ENDING_ILLUSTRATION_CORNER_RADIUS } from './constants';
 import { parseGIF, decompressFrames, type ParsedFrame } from 'gifuct-js';
-import { gcd } from 'mathjs';
+import { dot, gcd } from 'mathjs';
 import { fileTypeFromBlob } from 'file-type';
 import parseAPNG, { Frame } from 'apng-js';
 import { fixWebmDuration } from '@fix-webm-duration/fix';
@@ -27,6 +29,7 @@ import { AndroidFullScreen } from '@awesome-cordova-plugins/android-full-screen'
 import { Capacitor } from '@capacitor/core';
 import 'context-filter-polyfill';
 import bezier from 'bezier-easing';
+import type { Line } from './objects/Line';
 
 const easingFunctions: ((x: number) => number)[] = [
   (x) => x,
@@ -113,7 +116,7 @@ const download = async (url: string, name?: string) => {
   return new Blob(chunks);
 };
 
-export const IS_WEBKIT = 'webkitRequestAnimationFrame' in window;
+export const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 export const setFullscreen = () => {
   if (Capacitor.getPlatform() === 'android') {
@@ -184,7 +187,6 @@ export const getParams = (): Config | null => {
   const record = ['1', 'true'].some((v) => v == searchParams.get('record'));
   const autostart = ['1', 'true'].some((v) => v == searchParams.get('autostart'));
   const newTab = ['1', 'true'].some((v) => v == searchParams.get('newTab'));
-  const fullscreen = ['1', 'true'].some((v) => v == searchParams.get('fullscreen'));
   if (!song || !chart || !illustration || assetNames.length < assets.length) {
     const storageItem = localStorage.getItem('player');
     return storageItem ? JSON.parse(storageItem) : null;
@@ -236,7 +238,6 @@ export const getParams = (): Config | null => {
     record,
     autostart,
     newTab,
-    fullscreen,
   };
 };
 
@@ -507,6 +508,13 @@ export const fit = (
   return { width, height };
 };
 
+export const getJudgmentPosition = (input: PointerTap | PointerDrag, line: Line) => {
+  const vector = line.vector;
+  vector.scale(dot([input.position.x - line.x, input.position.y - line.y], [vector.x, vector.y]));
+  vector.add(new Phaser.Math.Vector2(line.x, line.y));
+  return vector;
+};
+
 export const getTimeSec = (bpmList: Bpm[], beat: number): number => {
   let bpm = bpmList.findLast((bpm) => bpm.startBeat <= beat);
   if (!bpm) bpm = bpmList[0];
@@ -616,7 +624,9 @@ export const getAudio = async (url: string): Promise<string> => {
   await ffmpeg.writeFile('input', await fetchFile(originalAudio));
   await ffmpeg.exec(['-i', 'input', '-f', 'wav', 'output']);
   const data = await ffmpeg.readFile('output');
-  return URL.createObjectURL(new Blob([(data as Uint8Array).buffer], { type: 'audio/wav' }));
+  return URL.createObjectURL(
+    new Blob([(data as Uint8Array).buffer as ArrayBuffer], { type: 'audio/wav' }),
+  );
 };
 
 export const outputRecording = async (

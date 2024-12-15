@@ -20,6 +20,7 @@ import {
   type PhiraExtra,
   type RegisteredObject,
   type RpeJson,
+  type ShaderEffect,
 } from '../types';
 import { Line } from '../objects/Line';
 import type { LongNote } from '../objects/LongNote';
@@ -74,14 +75,19 @@ export class Game extends Scene {
   private _lines: Line[];
   private _notes: (PlainNote | LongNote)[];
   private _shaders:
-    | {
-        key: string;
-        target: Cameras.Scene2D.Camera | RegisteredObject;
-      }[]
+    | (
+        | {
+            key: string;
+            effect: ShaderEffect;
+            target: Cameras.Scene2D.Camera | RegisteredObject;
+          }
+        | undefined
+      )[]
     | undefined;
   private _videos: Video[] | undefined;
   private _visible: boolean = true;
   private _timeout: NodeJS.Timeout;
+  private _isSeeking: boolean = false;
 
   private _objects: RegisteredObject[] = [];
 
@@ -161,8 +167,8 @@ export class Game extends Scene {
 
     this.load.image('asset-line.png', 'line.png');
     this.load.spritesheet('hit-effects', 'HitEffects.png', {
-      frameWidth: 350,
-      frameHeight: 350,
+      frameWidth: 256,
+      frameHeight: 256,
     });
 
     const { song, chart, illustration, assetNames, assetTypes, assets } = this._data.resources;
@@ -313,13 +319,13 @@ export class Game extends Scene {
     this.game.events.on('visible', () => {
       this._visible = true;
     });
-    this._song.once('complete', () => {
+    this._song.on('complete', () => {
       this.end();
     });
   }
 
   pause(emittedBySpace: boolean = false) {
-    if (this._status === GameStatus.ERROR) return;
+    if (this._status === GameStatus.ERROR || !this._song.isPlaying) return;
     clearTimeout(this._timeout);
     this._status = GameStatus.PAUSED;
     this._song.pause();
@@ -329,7 +335,7 @@ export class Game extends Scene {
 
   resume() {
     if (this._status === GameStatus.ERROR) return;
-    this.updateChart(this.beat, Date.now(), this.bpm);
+    this.updateChart(this.beat, this.timeSec, Date.now());
     this._status = GameStatus.PLAYING;
     this._song.resume();
     this._videos?.forEach((video) => video.resume());
@@ -340,8 +346,24 @@ export class Game extends Scene {
     if (this._status === GameStatus.ERROR) return;
     this._status = GameStatus.PLAYING;
     this._song.pause();
+    if (this._endingUI) this._endingUI.destroy();
+    this._gameUI.in();
     this.setSeek(0);
     this._judgmentHandler.reset();
+    this._lines.forEach((line) => line.setVisible(true));
+    this._shaders?.forEach((shader) => {
+      if (!shader) return;
+      const asset = this._shaderAssets.find((asset) => asset.key === shader.effect.shader)!;
+      ('object' in shader.target ? shader.target.object : shader.target).setPostPipeline(
+        shader.key,
+        {
+          scene: this,
+          fragShader: asset.source,
+          data: shader.effect,
+          target: shader.target,
+        },
+      );
+    });
     this._timeout = setTimeout(() => {
       this._song.play();
     }, 1000);
@@ -355,16 +377,16 @@ export class Game extends Scene {
     this._endingUI = new EndingUI(this, this._data.recorderOptions.endingLoopsToRecord);
     setTimeout(() => {
       this._endingUI.play();
-      this._shaders?.forEach((shader) =>
-        'object' in shader.target
-          ? shader.target.object.resetPostPipeline()
-          : shader.target.resetPostPipeline(),
-      );
+      this._shaders?.forEach((shader) => {
+        if (!shader) return;
+        ('object' in shader.target ? shader.target.object : shader.target).resetPostPipeline();
+      });
       EventBus.emit('finished');
     }, 1000);
   }
 
   setSeek(value: number) {
+    this._isSeeking = true;
     this._song.setSeek(value);
     this._videos?.forEach((video) => video.setSeek(value));
   }
@@ -382,6 +404,8 @@ export class Game extends Scene {
       return;
     }
     if (this._status === GameStatus.FINISHED) this._endingUI.update();
+    const status = this._status;
+    if (this._isSeeking) this._status = GameStatus.SEEKING;
     this._pointerHandler.update(delta);
     if (this._visible) {
       this._gameUI.update();
@@ -393,6 +417,10 @@ export class Game extends Scene {
     );
     this.updateChart(this.beat, this.timeSec, time);
     this.statistics.updateDisplay(delta);
+    if (this._isSeeking) {
+      this._status = status;
+      this._isSeeking = false;
+    }
   }
 
   destroy() {
@@ -407,8 +435,9 @@ export class Game extends Scene {
   updateChart(beat: number, songTime: number, gameTime: number) {
     if (this._status === GameStatus.FINISHED || this._status === GameStatus.DESTROYED) return;
     this._lines.forEach((line) => line.update(beat, songTime, gameTime));
-    this._notes.forEach((note) => note.updateJudgment(beat));
+    this._notes.forEach((note) => note.updateJudgment(beat, songTime));
     this._shaders?.forEach((shader) => {
+      if (!shader) return;
       (
         ('object' in shader.target
           ? shader.target.object.getPostPipeline(shader.key)
@@ -574,7 +603,7 @@ export class Game extends Scene {
       if (!asset) {
         this._status = GameStatus.ERROR;
         alert(`Unable to locate external shader ${effect.shader.slice(6)}`);
-        return { key: '', target: this.cameras.main };
+        return undefined;
       }
       const key = `${effect.shader}-${i}`;
       (this.renderer as Renderer.WebGL.WebGLRenderer).pipelines.addPostPipeline(
@@ -608,7 +637,7 @@ export class Game extends Scene {
           target,
         });
       }
-      return { key, target };
+      return { key, effect, target };
     });
   }
 

@@ -16,6 +16,7 @@ export class PlainNote extends GameObjects.Image {
   private _judgmentType: JudgmentType = JudgmentType.UNJUDGED;
   private _beatJudged: number | undefined = undefined;
   private _pendingPerfect: boolean = false;
+  private _hasTapInput: boolean = false;
   private _consumeTap: boolean = true;
 
   constructor(scene: Game, data: Note, x: number = 0, y: number = 0, highlight: boolean = false) {
@@ -28,6 +29,9 @@ export class PlainNote extends GameObjects.Image {
     this.setOrigin(0.5);
     this.resize();
     this.setAlpha(data.alpha / 255);
+    if (data.tint) {
+      this.setTint(rgbToHex(data.tint));
+    }
 
     if ([1, 2].includes(scene.preferences.chartFlipping)) {
       this._xModifier = -1;
@@ -43,9 +47,6 @@ export class PlainNote extends GameObjects.Image {
     const dist = this._scene.d((this._targetHeight - height) * this._data.speed);
     if (this._judgmentType !== JudgmentType.BAD) {
       this.setY(this._yModifier * dist);
-      if (this._data.tint) {
-        this.setTint(rgbToHex(this._data.tint));
-      }
     }
     if (beat >= this._data.startBeat) {
       if (this._data.isFake) {
@@ -64,19 +65,16 @@ export class PlainNote extends GameObjects.Image {
     }
   }
 
-  updateJudgment(beat: number) {
+  updateJudgment(beat: number, songTime: number) {
     beat *= this._line.data.bpmfactor;
     if (this._judgmentType === JudgmentType.UNJUDGED) {
-      const deltaSec = getTimeSec(this._scene.bpmList, beat) - this._hitTime;
+      const deltaSec = songTime - this._hitTime;
       const delta = deltaSec * 1000;
       const { perfectJudgment, goodJudgment } = this._scene.preferences;
       const badJudgment = goodJudgment * 1.125;
       const progress = clamp(delta / goodJudgment, 0, 1);
       this.setAlpha((this._data.alpha / 255) * (1 - progress));
       if (beat >= this._data.startBeat) {
-        if (this._data.type === 3) {
-          this._consumeTap = false;
-        }
         if (this._scene.autoplay || this._pendingPerfect) {
           this._scene.judgment.hit(JudgmentType.PERFECT, deltaSec, this);
           this._pendingPerfect = false;
@@ -87,24 +85,12 @@ export class PlainNote extends GameObjects.Image {
           return;
         }
       }
+      this._consumeTap = beat < this._data.startBeat || this._data.type !== 4;
       const isTap = this._data.type === 1;
       const isFlick = this._data.type === 3;
-      if (Math.abs(delta) <= (isTap ? badJudgment : goodJudgment)) {
-        const input = isTap
-          ? !!this._scene.pointer.findTap(
-              this,
-              this._scene.timeSec - badJudgment / 1000,
-              this._scene.timeSec + badJudgment / 1000,
-            )
-          : this._scene.pointer.findDrag(this, isFlick);
-        if (!input) return;
-        if (!isTap && this._consumeTap) {
-          this._scene.pointer.findTap(
-            this,
-            this._scene.timeSec - goodJudgment / 1000,
-            this._scene.timeSec + goodJudgment / 1000,
-          );
-        }
+      if (!this._pendingPerfect && Math.abs(delta) <= (isTap ? badJudgment : goodJudgment)) {
+        if (isTap && !this._hasTapInput) return;
+        if (!this._scene.pointer.findDrag(this, isFlick)) return;
         if (isTap && delta < -goodJudgment) {
           this._scene.judgment.hit(JudgmentType.BAD, deltaSec, this);
         } else if (delta < -perfectJudgment) {
@@ -122,6 +108,7 @@ export class PlainNote extends GameObjects.Image {
         } else {
           this._scene.judgment.hit(JudgmentType.BAD, deltaSec, this);
         }
+        this._hasTapInput = false;
       }
     }
   }
@@ -144,6 +131,9 @@ export class PlainNote extends GameObjects.Image {
     this._beatJudged = undefined;
     this.setAlpha(this._data.alpha / 255);
     this.clearTint();
+    if (this._data.tint) {
+      this.setTint(rgbToHex(this._data.tint));
+    }
   }
 
   public get judgmentPosition() {
@@ -166,12 +156,20 @@ export class PlainNote extends GameObjects.Image {
     return this._beatJudged;
   }
 
-  public get consumeTap() {
-    return this._consumeTap;
+  public get hitTime() {
+    return this._hitTime;
   }
 
-  public set consumeTap(consumeTap: boolean) {
-    this._consumeTap = consumeTap;
+  public get hasTapInput() {
+    return this._hasTapInput;
+  }
+
+  public set hasTapInput(hasTapInput: boolean) {
+    this._hasTapInput = hasTapInput;
+  }
+
+  public get consumeTap() {
+    return this._consumeTap;
   }
 
   public get line() {
