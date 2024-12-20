@@ -67,7 +67,7 @@ export interface RpeJson {
 }
 
 export interface JudgeLine {
-  attachUI?: 'pause' | 'combonumber' | 'combo' | 'score' | 'bar' | 'name' | 'level';
+  attachUI?: 'pause' | 'combonumber' | 'combo' | 'score' | 'bar' | 'name' | 'level' | null;
   Group: number;
   Name: string;
   Texture: string;
@@ -183,11 +183,11 @@ export interface GifEvent {
 }
 
 export interface EventLayer {
-  alphaEvents?: Event[];
-  moveXEvents?: Event[];
-  moveYEvents?: Event[];
-  rotateEvents?: Event[];
-  speedEvents?: SpeedEvent[];
+  alphaEvents?: Event[] | null;
+  moveXEvents?: Event[] | null;
+  moveYEvents?: Event[] | null;
+  rotateEvents?: Event[] | null;
+  speedEvents?: SpeedEvent[] | null;
 }
 
 export interface SpeedEvent {
@@ -329,6 +329,16 @@ export interface Video {
   scale: 'cropCenter' | 'inside' | 'fit';
   alpha: AnimatedVariable | number;
   dim: AnimatedVariable | number;
+  zIndex?: number;
+  attach?: {
+    line: number;
+    positionXFactor?: number;
+    positionYFactor?: number;
+    rotationFactor?: number;
+    alphaFactor?: number;
+    scaleXMode?: number;
+    scaleYMode?: number;
+  };
 }
 
 export interface ShaderEffect {
