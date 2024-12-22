@@ -71,11 +71,13 @@ The z indexes of judgment lines are calculated based on their `zOrder` values ([
 
 Aside from adding support for RPE features, we've also designed some original properties for judgment lines & notes.
 
-| Property         | Values                                      | Example                         | Description                                                                            |
-| ---------------- | ------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------- |
-| `scaleOnNotes`   | `0`: none; `1`: scale; `2`: clip            | `"scaleOnNotes": 2`             | Belongs to a judgment line. Decides how `scaleX` events affect notes. Defaults to `0`. |
-| `tint`           | [R, G, B], as seen in `colorEvents`; `null` | `"tint": [255, 0, 0]`           | Belongs to a note. Sets the tint for the note. Defaults to `null`.                     |
-| `tintHitEffects` | [R, G, B], as seen in `colorEvents`; `null` | `"tintHitEffects": [255, 0, 0]` | Belongs to a note. Sets the tint for the hit effects of the note. Defaults to `null`.  |
+| Property           | Value(s)                                    | Example                         | Description                                                                                        |
+| ------------------ | ------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `scaleOnNotes`     | `0`: none; `1`: scale; `2`: clip            | `"scaleOnNotes": 2`             | Belongs to a judgment line. Decides how `scaleX` events affect notes. Defaults to `0`.             |
+| `zIndex`           | an integer or a float                       | `"zIndex": 3.5`                 | Belongs to a note. Sets the z index for the note. For default values, see [z indexes](#z-indexes). |
+| `zIndexHitEffects` | an integer or a float                       | `"zIndex": 6.5`                 | Belongs to a note. Sets the z index for the hit effects of the note. Defaults to `7`.              |
+| `tint`             | [R, G, B], as seen in `colorEvents`; `null` | `"tint": [255, 0, 0]`           | Belongs to a note. Sets the tint for the note. Defaults to `null`.                                 |
+| `tintHitEffects`   | [R, G, B], as seen in `colorEvents`; `null` | `"tintHitEffects": [255, 0, 0]` | Belongs to a note. Sets the tint for the hit effects of the note. Defaults to `null`.              |
 
 ### Video enhancements
 
@@ -190,7 +192,7 @@ Notice that there are two events that share the same shader code. This is a work
 | Support for custom hit sounds              | 0.0.1   |                                                                               | ✅ Done             | 自定义打击音效适配      |
 | Support for `zOrder`                       | 0.0.1   |                                                                               | ✅ Done             | Z 轴排序适配            |
 | Basic support for the extended event layer | 0.0.2   | Excluding GIF events & incline events                                         | ✅ Done             | 扩展事件层的基本适配    |
-| Cross-platform distribution                | 0.0.3   | Plan to reference [this blog](https://nsarrazin.com/blog/sveltekit-universal) | 🚧 Working          | 跨平台分发              |
+| Cross-platform distribution                | 0.0.3   | Plan to reference [this blog](https://nsarrazin.com/blog/sveltekit-universal) | ✅ Done             | 跨平台分发              |
 | Better input detections                    | 0.0.3   | Especially for Flicks                                                         | ✅ Done             | 输入检测优化            |
 | Support for Phira `extra.json`             | 0.0.4   | Including shaders                                                             | ✅ Done<sup>1</sup> | Phira `extra.json` 适配 |
 | Support for `attachUI`                     | 0.0.4   |                                                                               | ✅ Done             | UI 绑定适配             |
@@ -200,12 +202,11 @@ Notice that there are two events that share the same shader code. This is a work
 | Support for Bézier easings                 | 0.0.5   |                                                                               | ✅ Done             | 贝塞尔缓动适配          |
 | Video feature enhancements                 | 0.0.5   |                                                                               | ✅ Done             | 视频功能增强            |
 | Offset adjustment mode                     | 0.0.6   |                                                                               | ✅ Done             | 延迟调整模式            |
-| Alignment with official/RPE constants      | 0.0.6   | Hold tolerances, texture size units, etc.                                     |                     | 官/RPE 常数对齐         |
-| Full support for the extended event layer  | 0.0.6   | GIF events & incline events                                                   |                     | 扩展事件层的完全适配    |
+| Full support for the extended event layer  | 0.0.6   | GIF events & incline events                                                   | ✅ Done             | 扩展事件层的完全适配    |
 | Recording mode                             | 0.0.7   |                                                                               | ⏳ Postponed        | 录制模式                |
-| Support for all note properties            | 0.0.7   |                                                                               |                     | 所有 Note 属性的适配    |
-| Note property enhancements                 | 0.0.8   |                                                                               | 🚧 Working          | Note 属性增强           |
-| Full RPE support                           | 0.1.0   |                                                                               |                     | 完全 RPE 适配           |
+| Support for all note properties            | 0.0.7   |                                                                               | ✅ Done             | 所有 Note 属性的适配    |
+| Alignment with official/RPE constants      | 0.0.8   | Hold tolerances, texture size units, etc.                                     |                     | 官/RPE 常数对齐         |
+| Full RPE support                           | 0.1.0   |                                                                               | 🚧 Working          | 完全 RPE 适配           |
 | Basic PE support                           | 0.1.1   |                                                                               |                     | 基本 PE 适配            |
 | Customizable resource pack                 | 0.1.2   |                                                                               |                     | 可自定义资源包          |
 | PhiZone integration                        | 0.2.0   |                                                                               |                     | PhiZone 集成            |

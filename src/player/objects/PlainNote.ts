@@ -3,7 +3,7 @@ import { JudgmentType, type Note } from '../types';
 import { clamp, getTimeSec, rgbToHex } from '../utils';
 import type { Game } from '../scenes/Game';
 import type { Line } from './Line';
-import { NOTE_BASE_SIZE } from '../constants';
+import { NOTE_BASE_SIZE, NOTE_PRIORITIES } from '../constants';
 
 export class PlainNote extends GameObjects.Image {
   private _scene: Game;
@@ -39,12 +39,25 @@ export class PlainNote extends GameObjects.Image {
   }
 
   update(beat: number, songTime: number, height: number, visible = true) {
-    this.setX(this._scene.p(this._xModifier * this._data.positionX));
+    const dist =
+      this._scene.d((this._targetHeight - height) * this._data.speed) +
+      this._scene.o(-this._data.yOffset);
+    this.setX(
+      this._scene.p(
+        this._xModifier * this._data.positionX +
+          Math.tan(
+            ((this._xModifier * this._data.positionX) / 675) *
+              -(this._line.incline ?? 0) *
+              (Math.PI / 180),
+          ) *
+            (dist / this._scene.sys.canvas.height) *
+            900,
+      ),
+    );
     this.resize();
     if (this._beatJudged && beat < this._beatJudged) {
       this._scene.judgment.unjudge(this);
     }
-    const dist = this._scene.d((this._targetHeight - height) * this._data.speed);
     if (this._judgmentType !== JudgmentType.BAD) {
       this.setY(this._yModifier * dist);
     }
@@ -60,7 +73,7 @@ export class PlainNote extends GameObjects.Image {
       this.setVisible(
         visible &&
           songTime >= this._hitTime - this._data.visibleTime &&
-          (dist >= 0 || !this._line.data.isCover),
+          (dist >= this._scene.o(-this._data.yOffset) || !this._line.data.isCover),
       );
     }
   }
@@ -85,7 +98,7 @@ export class PlainNote extends GameObjects.Image {
           return;
         }
       }
-      this._consumeTap = beat < this._data.startBeat || this._data.type !== 4;
+      this._consumeTap = beat <= this._data.startBeat || this._data.type !== 4;
       const isTap = this._data.type === 1;
       const isFlick = this._data.type === 3;
       if (!this._pendingPerfect && Math.abs(delta) <= (isTap ? badJudgment : goodJudgment)) {
@@ -137,9 +150,10 @@ export class PlainNote extends GameObjects.Image {
   }
 
   public get judgmentPosition() {
+    const y = this._yModifier * this._scene.o(-this._data.yOffset);
     return {
-      x: this._line.x + this.x * Math.cos(this._line.rotation),
-      y: this._line.y + this.x * Math.sin(this._line.rotation),
+      x: this._line.x + this.x * Math.cos(this._line.rotation) + y * Math.sin(this._line.rotation),
+      y: this._line.y + this.x * Math.sin(this._line.rotation) + y * Math.cos(this._line.rotation),
     };
   }
 
@@ -170,6 +184,10 @@ export class PlainNote extends GameObjects.Image {
 
   public get consumeTap() {
     return this._consumeTap;
+  }
+
+  public get zIndex() {
+    return this._data.zIndex ?? NOTE_PRIORITIES[this._data.type] + 2;
   }
 
   public get line() {
