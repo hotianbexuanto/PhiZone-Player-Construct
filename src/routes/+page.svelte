@@ -29,7 +29,7 @@
     metadata: Metadata;
   }
 
-  const VERSION = '0.0.3';
+  const VERSION = '0.0.6';
   const REPO_LINK = 'https://github.com/PhiZone/player';
 
   let showCollapse = false;
@@ -921,8 +921,8 @@
                     id="adjust-offset-description"
                     class="block text-sm text-gray-600 dark:text-neutral-500"
                   >
-                    Enables realtime chart offset adjustment. The displayed offset still accounts
-                    for the offset set in the preferences.
+                    Enables realtime chart offset adjustment. The offset set in the preferences is
+                    ignored.
                   </span>
                 </label>
               </div>
@@ -1265,7 +1265,7 @@
       </svg>
       <a
         class="inline-flex items-center gap-x-1 text-sm text-blue-600 decoration-2 hover:underline focus:outline-none focus:underline font-medium dark:text-blue-500"
-        href="{REPO_LINK}/issues/new"
+        href="{REPO_LINK}/issues/new/choose"
         target="_blank"
       >
         File an issue

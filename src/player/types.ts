@@ -82,10 +82,12 @@ export interface JudgeLine {
   notes?: Note[];
   numOfNotes: number;
   posControl: PosControl[];
-  scaleOnNotes?: number;
+  scaleOnNotes?: 0 | 1 | 2;
+  appearanceOnAttach?: 0 | 1 | 2;
   sizeControl: SizeControl[];
   skewControl: SkewControl[];
   yControl: YControl[];
+  zIndex?: number;
   zOrder: number;
 }
 
@@ -128,6 +130,8 @@ export interface Note {
   visibleTime: number;
   yOffset: number;
   hitsound?: string;
+  zIndex?: number;
+  zIndexHitEffects?: number;
   tint?: [number, number, number] | null;
   tintHitEffects?: [number, number, number] | null;
 }
@@ -336,8 +340,9 @@ export interface Video {
     positionYFactor?: number;
     rotationFactor?: number;
     alphaFactor?: number;
-    scaleXMode?: number;
-    scaleYMode?: number;
+    tintFactor?: number;
+    scaleXMode?: 0 | 1 | 2;
+    scaleYMode?: 0 | 1 | 2;
   };
 }
 
@@ -358,7 +363,7 @@ export interface ShaderEffect {
   };
 }
 
-export type Variable = AnimatedVariable | number | number[];
+export type Variable = AnimatedVariable | number | number[] | string;
 
 export type AnimatedVariable = VariableEvent[];
 

@@ -1,4 +1,4 @@
-name: Build App with pnpm and Gradle
+name: Build App with pnpm
 
 on:
   push:
@@ -44,26 +44,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Step 6: Setup Android SDK
-      - name: Setup Android SDK
-        run: |
-          sudo apt update
-          sudo apt install -y openjdk-17-jdk wget unzip
-          mkdir -p $HOME/android-sdk
-          cd $HOME/android-sdk
-          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-          unzip commandlinetools-linux-8512546_latest.zip
-          rm commandlinetools-linux-8512546_latest.zip
-          yes | $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
-          $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;30.0.3" "platforms;android-30"
-        env:
-          ANDROID_HOME: $HOME/android-sdk
-
-      # Step 7: Give gradlew execute permission
+      # Step 6: Give gradlew execute permission
       - name: Give gradlew execute permission
         run: chmod +x android/gradlew
 
-      # Step 8: Cache Gradle dependencies
+      # Step 7: Cache Gradle dependencies
       - name: Cache Gradle dependencies
         uses: actions/cache@v3
         with:
@@ -72,14 +57,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Step 9: Execute Gradle build
+      # Step 8: Execute Gradle build
       - name: Run Gradle build
         run: |
           npx cap sync android
           cd android
           ./gradlew build
 
-      # Step 10: Compress build output and save filename to variable
+      # Step 9: Compress build output and save filename to variable
       - name: Compress build files
         id: zip
         run: |
@@ -88,7 +73,7 @@ jobs:
           zip -r $ZIP_FILE android/app/build/ build
           echo "ZIP_FILE=${ZIP_FILE}" >> $GITHUB_ENV
 
-      # Step 11: Create a timestamped tag (dev-YYYYMMDDHH format)
+      # Step 10: Create a timestamped tag (dev-YYYYMMDDHH format)
       - name: Create 'dev' tag with timestamp
         id: create_tag
         run: |
@@ -110,7 +95,7 @@ jobs:
             git push origin $TAG_NAME
           fi
 
-      # Step 12: Upload release to GitHub Releases
+      # Step 11: Upload release to GitHub Releases
       - name: Upload Release
         uses: softprops/action-gh-release@v1
         with:

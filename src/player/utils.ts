@@ -14,6 +14,11 @@ import {
   type Config,
   type PointerTap,
   type PointerDrag,
+  type AlphaControl,
+  type PosControl,
+  type SizeControl,
+  type SkewControl,
+  type YControl,
   // type RecorderOptions,
 } from './types';
 import { EventBus } from './EventBus';
@@ -339,6 +344,12 @@ export const processEvents = (
   events?.sort((a, b) => a.startBeat - b.startBeat);
 };
 
+export const processControlNodes = (
+  control: AlphaControl[] | PosControl[] | SizeControl[] | SkewControl[] | YControl[],
+): void => {
+  control.sort((a, b) => b.x - a.x);
+};
+
 export const toBeats = (time: number[]): number => {
   if (time[1] == 0 || time[2] == 0) return time[0];
   return time[0] + time[1] / time[2];
@@ -431,6 +442,17 @@ const calculateValue = (
     return start + (end - start) * progress;
   }
   if (typeof start === 'string' && typeof end === 'string') {
+    if (start.includes('%P%') && end.includes('%P%')) {
+      const startNumeric = parseFloat(start.replace('%P%', ''));
+      const endNumeric = parseFloat(end.replace('%P%', ''));
+      if (!isNaN(startNumeric) && !isNaN(endNumeric)) {
+        if (Number.isInteger(startNumeric) && Number.isInteger(endNumeric)) {
+          return Math.floor(startNumeric + (endNumeric - startNumeric) * progress).toString();
+        } else {
+          return (startNumeric + (endNumeric - startNumeric) * progress).toFixed(3);
+        }
+      }
+    }
     if (start.startsWith(end)) {
       return (
         end +
@@ -454,7 +476,32 @@ const calculateValue = (
   return undefined;
 };
 
-export const getValue = (
+export const getControlValue = (
+  x: number,
+  control:
+    | { type: 'alpha'; payload: AlphaControl[] }
+    | { type: 'pos'; payload: PosControl[] }
+    | { type: 'size'; payload: SizeControl[] }
+    | { type: 'skew'; payload: SkewControl[] }
+    | { type: 'y'; payload: YControl[] },
+): number => {
+  const currentIndex = control.payload.findLastIndex((node) => node.x >= x) ?? 0;
+  const nextIndex = currentIndex + 1 < control.payload.length ? currentIndex + 1 : currentIndex;
+  return calculateValue(
+    control.payload[currentIndex][control.type as keyof (typeof control.payload)[number]],
+    control.payload[nextIndex][control.type as keyof (typeof control.payload)[number]],
+    nextIndex === currentIndex
+      ? 0
+      : easing(
+          control.payload[currentIndex].easing,
+          undefined,
+          (x - control.payload[currentIndex].x) /
+            (control.payload[nextIndex].x - control.payload[currentIndex].x),
+        ),
+  ) as number;
+};
+
+export const getEventValue = (
   beat: number,
   event: Event | SpeedEvent | ColorEvent | TextEvent | GifEvent | VariableEvent,
 ) =>
@@ -483,7 +530,7 @@ export const getIntegral = (
       2
     );
   return (
-    ((event.start + (getValue(beat, event) as number)) *
+    ((event.start + (getEventValue(beat, event) as number)) *
       (getTimeSec(bpmList, beat) - getTimeSec(bpmList, event.startBeat))) /
     2
   );
@@ -724,7 +771,7 @@ export const triggerDownload = (blob: Blob, name: string) => {
 const convertGifToSpritesheet = (gifArrayBuffer: ArrayBuffer) => {
   const gif = parseGIF(gifArrayBuffer);
   const originalFrames = decompressFrames(gif, true);
-  console.log(gif, originalFrames);
+  // console.log(gif, originalFrames);
 
   if (originalFrames.length === 0) {
     throw new Error('GIF has no frames');

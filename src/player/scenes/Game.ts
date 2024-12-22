@@ -64,7 +64,6 @@ export class Game extends Scene {
   private _levelType: 0 | 1 | 2 | 3 | 4;
   private _level: string | null;
   private _offset: number;
-  private _chartOffset: number;
   private _bpmList: Bpm[];
   private _numberOfNotes: number;
   private _autoplay = false;
@@ -169,8 +168,8 @@ export class Game extends Scene {
 
     this.load.image('asset-line.png', 'line.png');
     this.load.spritesheet('hit-effects', 'HitEffects.png', {
-      frameWidth: 350,
-      frameHeight: 350,
+      frameWidth: 256,
+      frameHeight: 256,
     });
 
     const { song, chart, illustration, assetNames, assetTypes, assets } = this._data.resources;
@@ -234,10 +233,10 @@ export class Game extends Scene {
       await Promise.all([
         ...this._animatedAssets.map(async (asset) => {
           const spritesheet = await getSpritesheet(asset.url, asset.isGif);
-          console.log(spritesheet.frameSize, spritesheet.frameCount, spritesheet.frameRate);
-          spritesheet.spritesheet.toBlob((e) => {
-            if (e) console.log(URL.createObjectURL(e));
-          });
+          // console.log(spritesheet.frameSize, spritesheet.frameCount, spritesheet.frameRate);
+          // spritesheet.spritesheet.toBlob((e) => {
+          //   if (e) console.log(URL.createObjectURL(e));
+          // });
           this.load.spritesheet(
             asset.key,
             spritesheet.spritesheet.toDataURL(),
@@ -304,9 +303,8 @@ export class Game extends Scene {
         this._gameUI.setVisible(true);
         if (this._adjustOffset) {
           EventBus.on('offset-adjusted', (offset: number) => {
-            this._chartOffset = offset;
             this._chart.META.offset = offset;
-            this._offset = this._chartOffset + this._data.preferences.chartOffset;
+            this._offset = this._chart.META.offset;
           });
         }
         EventBus.emit('current-scene-ready', this);
@@ -523,8 +521,8 @@ export class Game extends Scene {
   initializeChart() {
     EventBus.emit('loading-detail', 'Initializing chart');
     const chart = this._chart;
-    this._chartOffset = chart.META.offset;
-    this._offset = this._chartOffset + this._data.preferences.chartOffset;
+    this._offset =
+      chart.META.offset + (this._adjustOffset ? 0 : this._data.preferences.chartOffset);
     this._bpmList = chart.BPMList;
 
     if (!this._title) this._title = chart.META.name;
@@ -826,10 +824,6 @@ export class Game extends Scene {
 
   public get status() {
     return this._status;
-  }
-
-  public get chartOffset() {
-    return this._chartOffset;
   }
 
   public get autoplay() {

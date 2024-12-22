@@ -13,10 +13,11 @@ import {
   getIntegral,
   getLineColor,
   getTimeSec,
-  getValue,
+  getEventValue,
   processEvents,
   rgbToHex,
   toBeats,
+  processControlNodes,
 } from '../utils';
 import type { Game } from '../scenes/Game';
 import { FONT_FAMILY } from '../constants';
@@ -29,10 +30,7 @@ export class Line {
   private _data: JudgeLine;
   private _line: GameObjects.Image | GameObjects.Sprite | GameObjects.Text;
   private _parent: Line | null = null;
-  private _flickContainer: GameObjects.Container;
-  private _tapContainer: GameObjects.Container;
-  private _dragContainer: GameObjects.Container;
-  private _holdContainer: GameObjects.Container;
+  private _noteContainers: Record<number, GameObjects.Container> = {};
   private _noteMask: GameObjects.Graphics | null = null;
   private _notes: (PlainNote | LongNote)[] = [];
   private _hasAttach: boolean = false;
@@ -80,9 +78,9 @@ export class Line {
     this._data = lineData;
     this._hasText = (this._data.extended?.textEvents?.length ?? 0) > 0;
     this._hasCustomTexture = this._hasText || lineData.Texture !== 'line.png';
-    this._hasAnimatedTexture = ['.gif', '.apng'].some((e) =>
-      lineData.Texture.toLowerCase().endsWith(e),
-    );
+    this._hasAnimatedTexture =
+      ['.gif', '.apng'].some((e) => lineData.Texture.toLowerCase().endsWith(e)) &&
+      this._scene.textures.exists(`asset-${lineData.Texture}`);
     this._line = this._hasText
       ? new GameObjects.Text(scene, 0, 0, this._text ?? '', {
           fontFamily: FONT_FAMILY,
@@ -90,7 +88,7 @@ export class Line {
           color: '#ffffff',
           align: 'left',
         }).setOrigin(0.5)
-      : this._hasAnimatedTexture && this._scene.textures.exists(`asset-${lineData.Texture}`)
+      : this._hasAnimatedTexture
         ? new GameObjects.Sprite(scene, 0, 0, `asset-${lineData.Texture}`).play(
             `asset-${lineData.Texture}`,
           )
@@ -101,15 +99,11 @@ export class Line {
       this._scene.p(1) * (this._scaleX ?? 1),
       this._scene.p(1) * (this._scaleY ?? 1),
     ); // previously 1.0125 (according to the official definition that a line is 3 times as wide as the screen)
-    this._line.setDepth(2 + precedence);
-    this._line.setVisible(!this._hasAttach || this._hasText);
-    if (!this._hasCustomTexture && !this._hasAttach) this._line.setTint(getLineColor(scene));
+    this._line.setDepth(lineData.zIndex !== undefined ? lineData.zIndex : 2 + precedence);
+    this._line.setVisible(!this._hasAttach || !!lineData.appearanceOnAttach || this._hasText);
+    if (!this._hasCustomTexture && (!this._hasAttach || lineData.appearanceOnAttach === 2))
+      this._line.setTint(getLineColor(scene));
     if (this._data.anchor) this._line.setOrigin(this._data.anchor[0], 1 - this._data.anchor[1]);
-
-    this._holdContainer = this.createContainer(3);
-    this._dragContainer = this.createContainer(4);
-    this._tapContainer = this.createContainer(5);
-    this._flickContainer = this.createContainer(6);
 
     if (scene.preferences.chartFlipping & 1) {
       this._xModifier = -1;
@@ -119,15 +113,6 @@ export class Line {
       this._yModifier = -1;
       this._rotationModifier = (-1 * this._xModifier) as 1 | -1;
       this._rotationOffset = 180;
-    }
-
-    if (lineData.scaleOnNotes === 2) {
-      this._noteMask = new GameObjects.Graphics(scene);
-      const mask = this._noteMask.createGeometryMask();
-      this._holdContainer.setMask(mask);
-      this._dragContainer.setMask(mask);
-      this._tapContainer.setMask(mask);
-      this._flickContainer.setMask(mask);
     }
 
     // this._flickContainer.add(scene.add.rectangle(0, 0, 10, 10, 0x00ff00).setOrigin(0.5));
@@ -162,7 +147,18 @@ export class Line {
       processEvents(this._data.extended.textEvents);
     }
 
+    processControlNodes(this._data.alphaControl);
+    processControlNodes(this._data.posControl);
+    processControlNodes(this._data.sizeControl);
+    processControlNodes(this._data.skewControl);
+    processControlNodes(this._data.yControl);
+
     if (this._data.notes) {
+      // this._holdContainer = this.createContainer(3);
+      // this._dragContainer = this.createContainer(4);
+      // this._tapContainer = this.createContainer(5);
+      // this._flickContainer = this.createContainer(6);
+
       this._data.notes.forEach((note) => {
         note.startBeat = toBeats(note.startTime);
         note.endBeat = toBeats(note.endTime);
@@ -178,8 +174,16 @@ export class Line {
           note = new PlainNote(scene, data);
           note.setHeight(this.calculateHeight(data.startBeat));
         }
-        this.addNote(note);
+        this.addNote(note, this._noteContainers[note.zIndex] ?? this.createContainer(note.zIndex));
       });
+
+      if (lineData.scaleOnNotes === 2) {
+        this._noteMask = new GameObjects.Graphics(scene);
+        const mask = this._noteMask.createGeometryMask();
+        Object.values(this._noteContainers).forEach((container) => {
+          container.setMask(mask);
+        });
+      }
     }
   }
 
@@ -196,10 +200,9 @@ export class Line {
 
   destroy() {
     this._line.destroy();
-    this._flickContainer.destroy();
-    this._tapContainer.destroy();
-    this._dragContainer.destroy();
-    this._holdContainer.destroy();
+    Object.values(this._noteContainers).forEach((container) => {
+      container.destroy();
+    });
     this._notes.forEach((note) => {
       note.destroy();
     });
@@ -211,8 +214,17 @@ export class Line {
       this._scene.p(1) * (this._scaleY ?? 1),
     );
     if (this._hasText) (this._line as GameObjects.Text).setText(this._text ?? '');
-    if (this._color) this._line.setTint(rgbToHex(this._color));
-    else if (!this._hasCustomTexture && !this._hasAttach)
+    if (this._hasAnimatedTexture) {
+      const sprite = this._line as GameObjects.Sprite;
+      if (this._gif !== undefined && this._gif >= 0 && this._gif <= 1) {
+        sprite.anims.pause();
+        sprite.anims.setProgress(this._gif);
+      } else if (sprite.anims?.isPaused) {
+        sprite.anims.resume();
+      }
+    }
+    if (this._color !== undefined) this._line.setTint(rgbToHex(this._color));
+    else if (!this._hasCustomTexture && (!this._hasAttach || this._data.appearanceOnAttach === 2))
       this._line.setTint(getLineColor(this._scene));
     const { x, y } = this.getPosition();
     const rotation =
@@ -220,15 +232,13 @@ export class Line {
     this._line.setPosition(x, y);
     this._line.setRotation(rotation);
     this._line.setAlpha(this._opacity / 255);
-    [this._flickContainer, this._tapContainer, this._dragContainer, this._holdContainer].forEach(
-      (obj) => {
-        obj.setPosition(x, y);
-        obj.setRotation(rotation);
-        if (this._data.scaleOnNotes === 1) {
-          obj.setScale(this._scaleX ?? 1, 1);
-        }
-      },
-    );
+    Object.values(this._noteContainers).forEach((obj) => {
+      obj.setPosition(x, y);
+      obj.setRotation(rotation);
+      if (this._data.scaleOnNotes === 1) {
+        obj.setScale(this._scaleX ?? 1, 1);
+      }
+    });
     this.updateMask();
     this.updateAttachments();
   }
@@ -328,6 +338,7 @@ export class Line {
   createContainer(depth: number) {
     const container = new GameObjects.Container(this._scene);
     container.setDepth(depth);
+    this._noteContainers[depth] = container;
     this._scene.register(container);
     return container;
   }
@@ -408,6 +419,7 @@ export class Line {
     layerIndex: number,
     events: (Event | ColorEvent | GifEvent | TextEvent)[] | null | undefined,
     cur: number[],
+    fillInBetween = true,
   ) {
     while (cur.length < layerIndex + 1) {
       cur.push(0);
@@ -420,12 +432,12 @@ export class Line {
         cur[layerIndex]++;
       }
       if (
-        typeof events[cur[layerIndex]].start === 'string' &&
-        beat < events[cur[layerIndex]].startBeat
+        !fillInBetween &&
+        (beat <= events[cur[layerIndex]].startBeat || beat > events[cur[layerIndex]].endBeat)
       ) {
         return undefined;
-      } // shit code
-      return getValue(beat, events[cur[layerIndex]]);
+      }
+      return getEventValue(beat, events[cur[layerIndex]]);
     } else {
       return undefined;
     }
@@ -484,7 +496,7 @@ export class Line {
       color: this.handleEvent(beat, layerIndex, extended.colorEvents, this._curColor) as
         | number[]
         | undefined,
-      gif: this.handleEvent(beat, layerIndex, extended.gifEvents, this._curGif) as
+      gif: this.handleEvent(beat, layerIndex, extended.gifEvents, this._curGif, false) as
         | number
         | undefined,
       incline: this.handleEvent(beat, layerIndex, extended.inclineEvents, this._curIncline) as
@@ -525,12 +537,10 @@ export class Line {
     );
   }
 
-  addNote(note: PlainNote | LongNote) {
+  addNote(note: PlainNote | LongNote, container: GameObjects.Container) {
     note.line = this;
     this._notes.push(note);
-    [this._tapContainer, this._holdContainer, this._flickContainer, this._dragContainer][
-      note.note.type - 1
-    ].add(note);
+    container.add(note);
   }
 
   setParent(parent: Line) {
@@ -545,7 +555,7 @@ export class Line {
     this._attachedVideos.push(video);
     this._hasAttach = true;
     this._line.clearTint();
-    this._line.setVisible(this._hasText);
+    this._line.setVisible(!!this._data.appearanceOnAttach || this._hasText);
   }
 
   public get notes() {
@@ -576,23 +586,18 @@ export class Line {
     return this._line.alpha;
   }
 
+  public get incline() {
+    return this._incline;
+  }
+
   public get elements() {
-    return [
-      this._line,
-      this._holdContainer,
-      this._dragContainer,
-      this._tapContainer,
-      this._flickContainer,
-    ];
+    return [this._line, ...Object.values(this._noteContainers)];
   }
 
   setVisible(visible: boolean) {
     [
-      !this._hasAttach ? this._line : undefined,
-      this._flickContainer,
-      this._tapContainer,
-      this._dragContainer,
-      this._holdContainer,
+      !this._hasAttach || this._data.appearanceOnAttach ? this._line : undefined,
+      ...Object.values(this._noteContainers),
     ].forEach((obj) => {
       obj?.setVisible(visible);
     });

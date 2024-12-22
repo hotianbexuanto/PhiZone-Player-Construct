@@ -34,13 +34,13 @@ Besides, <kbd>ESC</kbd> is always available to pause with the pause screen.
 
 Animated PNGs are an excellent alternative to GIFs, offering enhanced color fidelity and the support of an 8-bit alpha channel for smoother transparency effects.
 
-While there hasn't been support for GIF events, APNGs are planned to act exactly the same as GIFs.
+An APNG acts exactly the same way as a GIF does, unless the number of repetitions is specified in the file, according to the APNG specification.
 
 ### Z indexes
 
-The z index (depth) defines the order in which game objects are rendered. The lower the value, the earlier they are rendered.
+The Z index (depth) defines the order in which game objects are rendered. The lower the value, the earlier they are rendered.
 
-| Default z index (depth) | Object(s)                                                                  |
+| Default Z index (depth) | Object(s)                                                                  |
 | ----------------------- | -------------------------------------------------------------------------- |
 | 0                       | Illustration                                                               |
 | 1                       | Background video, if present                                               |
@@ -59,7 +59,7 @@ The z index (depth) defines the order in which game objects are rendered. The lo
 | 14                      | Song title                                                                 |
 | 15                      | Level name & difficulty                                                    |
 
-The z indexes of judgment lines are calculated based on their `zOrder` values ([code here](https://github.com/PhiZone/player/blob/ed8a6119a28c8594d372aacb8e1da12fdce6d692/src/player/utils.ts#L595)). Simply put, the values are mapped onto [0, 1) and made equally spaced, and then get added by 2 to become z indexes. See examples below.
+The Z indexes of judgment lines whose `zIndex` is not present (see [Chart enhancements](#chart-enhancements)) are calculated based on their `zOrder` values ([code here](https://github.com/PhiZone/player/blob/ed8a6119a28c8594d372aacb8e1da12fdce6d692/src/player/utils.ts#L595)). Simply put, the values are mapped onto [0, 1) and made equally spaced, and then get added by 2 to become Z indexes. See examples below.
 
 | `zOrder`           | Z index               |
 | ------------------ | --------------------- |
@@ -71,11 +71,14 @@ The z indexes of judgment lines are calculated based on their `zOrder` values ([
 
 Aside from adding support for RPE features, we've also designed some original properties for judgment lines & notes.
 
-| Property         | Values                                      | Example                         | Description                                                                            |
-| ---------------- | ------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------- |
-| `scaleOnNotes`   | `0`: none; `1`: scale; `2`: clip            | `"scaleOnNotes": 2`             | Belongs to a judgment line. Decides how `scaleX` events affect notes. Defaults to `0`. |
-| `tint`           | [R, G, B], as seen in `colorEvents`; `null` | `"tint": [255, 0, 0]`           | Belongs to a note. Sets the tint for the note. Defaults to `null`.                     |
-| `tintHitEffects` | [R, G, B], as seen in `colorEvents`; `null` | `"tintHitEffects": [255, 0, 0]` | Belongs to a note. Sets the tint for the hit effects of the note. Defaults to `null`.  |
+| Property             | Value(s)                                            | Example                         | Description                                                                                                                                                                                                                                                                    |
+| -------------------- | --------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `scaleOnNotes`       | `0`: none; `1`: scale; `2`: clip                    | `"scaleOnNotes": 2`             | Belongs to a judgment line. Decides how `scaleX` events affect notes. Defaults to `0`.                                                                                                                                                                                         |
+| `appearanceOnAttach` | `0`: hidden; `1`: white colored; `2`: FC/AP colored | `"appearanceOnAttach": 2`       | Belongs to a judgment line. Decides how the line will be displayed when a UI component or any video is attached to it. Color events will override the color defined by these options. Defaults to `0`.                                                                         |
+| `zIndex`             | an integer or a float                               | `"zIndex": 3.5`                 | Belongs to a judgment line or note. Sets the Z index for the object. For a judgment line, this property, if set, overrides the `zOrder` property, allowing for more control over on which layer the line should be displayed. For default values, see [Z indexes](#z-indexes). |
+| `zIndexHitEffects`   | an integer or a float                               | `"zIndexHitEffects": 6.5`       | Belongs to a note. Sets the Z index for the hit effects of the note. Defaults to `7`.                                                                                                                                                                                          |
+| `tint`               | [R, G, B], as seen in `colorEvents`; `null`         | `"tint": [255, 0, 0]`           | Belongs to a note. Sets the tint for the note. Defaults to `null`.                                                                                                                                                                                                             |
+| `tintHitEffects`     | [R, G, B], as seen in `colorEvents`; `null`         | `"tintHitEffects": [255, 0, 0]` | Belongs to a note. Sets the tint for the hit effects of the note. Defaults to `null`.                                                                                                                                                                                          |
 
 ### Video enhancements
 
@@ -83,7 +86,7 @@ Support for videos in `extra.json` gets extended with the following new properti
 
 | Property | Type   | Description                                                                                 |
 | -------- | ------ | ------------------------------------------------------------------------------------------- |
-| `zIndex` | Number | Determines the z index for this video. Defaults to `1`.                                     |
+| `zIndex` | Number | Determines the Z index for this video. Defaults to `1`.                                     |
 | `attach` | Object | Attaches this video to a judgment line, if this property is present. See below for details. |
 
 Properties residing in the `attach` object:
@@ -95,6 +98,7 @@ Properties residing in the `attach` object:
 | `positionYFactor` (optional) | Number | Multiplied by the y position of the line, determines the y position of this video. Defaults to `1`.                                               |
 | `rotationFactor` (optional)  | Number | Multiplied by the rotation of the line, determines the rotation of this video. Defaults to `1`.                                                   |
 | `alphaFactor` (optional)     | Number | Multiplied by the alpha of the line, determines the alpha of this video, together with the `alpha` property of the video itself. Defaults to `1`. |
+| `tintFactor` (optional)      | Number | Multiplied by the tint of the line, determines the tint of this video. Defaults to `1`.                                                           |
 | `scaleXMode` (optional)      | Number | Determines how `scaleX` events of the line affect this video. Values same as in `scaleOnNotes`. Defaults to `0`.                                  |
 | `scaleYMode` (optional)      | Number | Determines how `scaleY` events of the line affect this video. Values same as in `scaleOnNotes`. Defaults to `0`.                                  |
 
@@ -102,12 +106,12 @@ Properties residing in the `attach` object:
 
 Except for WebGL's incompatibilities with newer versions of GLSL, the program supports not only all the shader features defined by `extra.json`, but also one original addition to the standard: **target range**.
 
-A target range defines a list of depth-adjacent (next to each other on the z axis) game objects that a shader event is applied to. It belongs directly to a shader event (as the optional `targetRange` property) and consists of the following properties:
+A target range defines a list of depth-adjacent (next to each other on the Z axis) game objects that a shader event is applied to. It belongs directly to a shader event (as the optional `targetRange` property) and consists of the following properties:
 
 | Property               | Type    | Description                                                                                                                                                                             |
 | ---------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `minZIndex`            | Number  | Defines the minimum z index (depth) of this range. Inclusive.                                                                                                                           |
-| `maxZIndex`            | Number  | Defines the maximum z index (depth) of this range. Exclusive.                                                                                                                           |
+| `minZIndex`            | Number  | Defines the minimum Z index (depth) of this range. Inclusive.                                                                                                                           |
+| `maxZIndex`            | Number  | Defines the maximum Z index (depth) of this range. Exclusive.                                                                                                                           |
 | `exclusive` (optional) | Boolean | Determines whether this range should exclude the range of another active shader event when the two ranges intersect but this range is not a superset of the other. Defaults to `false`. |
 
 If the `global` property of a shader event is set to `true`, then its `targetRange` will not function.
@@ -161,7 +165,7 @@ One thing to note is that a single object cannot be rendered in parallel by two 
 }
 ```
 
-Notice that there are two events that share the same shader code. This is a workaround when you want to apply the same shader to objects that are not adjacent on the z axis.
+Notice that there are two events that share the same shader code. This is a workaround when you want to apply the same shader to objects that are not adjacent on the Z axis.
 
 </details>
 
@@ -182,33 +186,33 @@ Notice that there are two events that share the same shader code. This is a work
 
 ## Development
 
-| Feature                                    | Version | Remark                                                                        | Status/Progress     | 功能                    |
-| ------------------------------------------ | ------- | ----------------------------------------------------------------------------- | ------------------- | ----------------------- |
-| Basic RPE support                          | 0.0.1   |                                                                               | ✅ Done             | 基本 RPE 适配           |
-| Support for custom line textures           | 0.0.1   |                                                                               | ✅ Done             | 判定线自定义贴图适配    |
-| Support for flipping modes                 | 0.0.1   |                                                                               | ✅ Done             | 镜像模式适配            |
-| Support for custom hit sounds              | 0.0.1   |                                                                               | ✅ Done             | 自定义打击音效适配      |
-| Support for `zOrder`                       | 0.0.1   |                                                                               | ✅ Done             | Z 轴排序适配            |
-| Basic support for the extended event layer | 0.0.2   | Excluding GIF events & incline events                                         | ✅ Done             | 扩展事件层的基本适配    |
-| Cross-platform distribution                | 0.0.3   | Plan to reference [this blog](https://nsarrazin.com/blog/sveltekit-universal) | 🚧 Working          | 跨平台分发              |
-| Better input detections                    | 0.0.3   | Especially for Flicks                                                         | ✅ Done             | 输入检测优化            |
-| Support for Phira `extra.json`             | 0.0.4   | Including shaders                                                             | ✅ Done<sup>1</sup> | Phira `extra.json` 适配 |
-| Support for `attachUI`                     | 0.0.4   |                                                                               | ✅ Done             | UI 绑定适配             |
-| Support for anchors                        | 0.0.4   |                                                                               | ✅ Done             | 锚点适配                |
-| Support for APNGs                          | 0.0.4   |                                                                               | ✅ Done             | APNG 格式适配           |
-| Shader feature enhancements                | 0.0.5   |                                                                               | ✅ Done             | 着色器功能增强          |
-| Support for Bézier easings                 | 0.0.5   |                                                                               | ✅ Done             | 贝塞尔缓动适配          |
-| Video feature enhancements                 | 0.0.5   |                                                                               | ✅ Done             | 视频功能增强            |
-| Offset adjustment mode                     | 0.0.6   |                                                                               | ✅ Done             | 延迟调整模式            |
-| Alignment with official/RPE constants      | 0.0.6   | Hold tolerances, texture size units, etc.                                     |                     | 官/RPE 常数对齐         |
-| Full support for the extended event layer  | 0.0.6   | GIF events & incline events                                                   |                     | 扩展事件层的完全适配    |
-| Recording mode                             | 0.0.7   |                                                                               | ⏳ Postponed        | 录制模式                |
-| Support for all note properties            | 0.0.7   |                                                                               |                     | 所有 Note 属性的适配    |
-| Note property enhancements                 | 0.0.8   |                                                                               | 🚧 Working          | Note 属性增强           |
-| Full RPE support                           | 0.1.0   |                                                                               |                     | 完全 RPE 适配           |
-| Basic PE support                           | 0.1.1   |                                                                               |                     | 基本 PE 适配            |
-| Customizable resource pack                 | 0.1.2   |                                                                               |                     | 可自定义资源包          |
-| PhiZone integration                        | 0.2.0   |                                                                               |                     | PhiZone 集成            |
+| Feature                                           | Version | Remark                                                                        | Status/Progress     | 功能                             |
+| ------------------------------------------------- | ------- | ----------------------------------------------------------------------------- | ------------------- | -------------------------------- |
+| Basic RPE support                                 | 0.0.1   |                                                                               | ✅ Done             | 基本 RPE 适配                    |
+| Support for custom line textures                  | 0.0.1   |                                                                               | ✅ Done             | 判定线自定义贴图适配             |
+| Support for flipping modes                        | 0.0.1   |                                                                               | ✅ Done             | 镜像模式适配                     |
+| Support for custom hit sounds                     | 0.0.1   |                                                                               | ✅ Done             | 自定义打击音效适配               |
+| Support for `zOrder`                              | 0.0.1   |                                                                               | ✅ Done             | Z 轴排序适配                     |
+| Basic support for the extended event layer        | 0.0.2   | Excluding GIF events & incline events                                         | ✅ Done             | 扩展事件层的基本适配             |
+| Cross-platform distribution                       | 0.0.3   | Plan to reference [this blog](https://nsarrazin.com/blog/sveltekit-universal) | ✅ Done             | 跨平台分发                       |
+| Better input detections                           | 0.0.3   | Especially for Flicks                                                         | ✅ Done             | 输入检测优化                     |
+| Support for Phira `extra.json`                    | 0.0.4   | Including shaders                                                             | ✅ Done<sup>1</sup> | Phira `extra.json` 适配          |
+| Support for `attachUI`                            | 0.0.4   |                                                                               | ✅ Done             | UI 绑定适配                      |
+| Support for anchors                               | 0.0.4   |                                                                               | ✅ Done             | 锚点适配                         |
+| Support for APNGs                                 | 0.0.4   |                                                                               | ✅ Done             | APNG 格式适配                    |
+| Shader feature enhancements                       | 0.0.5   | More flexibility                                                              | ✅ Done             | 着色器功能增强                   |
+| Support for Bézier easings                        | 0.0.5   |                                                                               | ✅ Done             | 贝塞尔缓动适配                   |
+| Video feature enhancements                        | 0.0.5   |                                                                               | ✅ Done             | 视频功能增强                     |
+| Offset adjustment mode                            | 0.0.6   |                                                                               | ✅ Done             | 延迟调整模式                     |
+| Full support for the extended event layer         | 0.0.6   | GIF events & incline events                                                   | ✅ Done             | 扩展事件层的完全适配             |
+| Recording mode                                    | 0.0.7   |                                                                               | ⏳ Postponed        | 录制模式                         |
+| Support for all note properties                   | 0.0.7   |                                                                               | ✅ Done             | 所有 Note 属性的适配             |
+| Alignment with official/RPE constants             | 0.0.8   | Hold tolerances, texture size units, etc.                                     |                     | 官/RPE 常数对齐                  |
+| (Shader enhancement) Support for sampler uniforms | 0.0.8   |                                                                               | 🚧 Working          | （着色器增强）sampler 型变量支持 |
+| Full RPE support                                  | 0.1.0   |                                                                               | 🚧 Working          | 完全 RPE 适配                    |
+| Basic PE support                                  | 0.1.1   |                                                                               |                     | 基本 PE 适配                     |
+| Customizable resource pack                        | 0.1.2   |                                                                               |                     | 可自定义资源包                   |
+| PhiZone integration                               | 0.2.0   |                                                                               |                     | PhiZone 集成                     |
 
 <sup>1</sup> Support for fragment shaders is partial, due to WebGL relying on an older version of GLSL.
 
