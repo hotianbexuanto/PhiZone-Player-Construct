@@ -106,7 +106,6 @@ export class Video extends GameObjects.Container {
 
   update(beat: number, timeSec: number) {
     if (!this._ready) return;
-<<<<<<< HEAD
     this._shouldPlay =
       timeSec >= 0 && timeSec >= this._data.startTimeSec && timeSec < this._data.endTimeSec;
     this.setVisible(this._shouldPlay);
@@ -118,16 +117,6 @@ export class Video extends GameObjects.Container {
     } else if (!this._isPlaying && this._scene.song.isPlaying) {
       this._video.resume();
       this._isPlaying = true;
-=======
-    this.setVisible(
-      timeSec >= 0 && timeSec >= this._data.startTimeSec && timeSec < this._data.endTimeSec,
-    );
-    if (!this.visible) {
-      this._video.stop();
-      return;
-    } else if (!this._video.isPlaying() && this._scene.song.isPlaying) {
-      this._video.play();
->>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
     }
     this._video.setPlaybackRate(this._scene.song.rate);
     if (typeof this._data.alpha === 'number') {
