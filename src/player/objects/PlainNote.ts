@@ -47,17 +47,24 @@ export class PlainNote extends SkewImage {
     const dist =
       this._scene.d((this._targetHeight - height) * this._data.speed) +
       this._scene.o(-this._data.yOffset);
+<<<<<<< HEAD
     const chartDist = (dist / this._scene.sys.canvas.height) * 900;
     this.setX(
       this._scene.p(
         this._xModifier *
           this._data.positionX *
           getControlValue(chartDist, { type: 'pos', payload: this._line.data.posControl }) +
+=======
+    this.setX(
+      this._scene.p(
+        this._xModifier * this._data.positionX +
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
           Math.tan(
             ((this._xModifier * this._data.positionX) / 675) *
               -(this._line.incline ?? 0) *
               (Math.PI / 180),
           ) *
+<<<<<<< HEAD
             chartDist,
       ),
     );
@@ -75,6 +82,13 @@ export class PlainNote extends SkewImage {
         })) /
       255;
     this.resize(chartDist);
+=======
+            (dist / this._scene.sys.canvas.height) *
+            900,
+      ),
+    );
+    this.resize();
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
     if (this._beatJudged && beat < this._beatJudged) {
       this._scene.judgment.unjudge(this);
     }
@@ -217,9 +231,13 @@ export class PlainNote extends SkewImage {
   }
 
   public get zIndex() {
+<<<<<<< HEAD
     return this._data.zIndex !== undefined
       ? this._data.zIndex
       : NOTE_PRIORITIES[this._data.type] + 2;
+=======
+    return this._data.zIndex ?? NOTE_PRIORITIES[this._data.type] + 2;
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
   }
 
   public get line() {

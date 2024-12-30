@@ -219,12 +219,20 @@ export class Line {
       if (this._gif !== undefined && this._gif >= 0 && this._gif <= 1) {
         sprite.anims.pause();
         sprite.anims.setProgress(this._gif);
+<<<<<<< HEAD
       } else if (sprite.anims?.isPaused) {
+=======
+      } else if (sprite.anims.isPaused) {
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
         sprite.anims.resume();
       }
     }
     if (this._color !== undefined) this._line.setTint(rgbToHex(this._color));
+<<<<<<< HEAD
     else if (!this._hasCustomTexture && (!this._hasAttach || this._data.appearanceOnAttach === 2))
+=======
+    else if (!this._hasCustomTexture && !this._hasAttach)
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
       this._line.setTint(getLineColor(this._scene));
     const { x, y } = this.getPosition();
     const rotation =
@@ -437,7 +445,11 @@ export class Line {
       ) {
         return undefined;
       }
+<<<<<<< HEAD
       return getEventValue(beat, events[cur[layerIndex]]);
+=======
+      return getValue(beat, events[cur[layerIndex]]);
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
     } else {
       return undefined;
     }
@@ -497,18 +509,28 @@ export class Line {
         | number[]
         | undefined,
       gif: this.handleEvent(beat, layerIndex, extended.gifEvents, this._curGif, false) as
+<<<<<<< HEAD
         | number
         | undefined,
       incline: this.handleEvent(beat, layerIndex, extended.inclineEvents, this._curIncline) as
+=======
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
         | number
         | undefined,
+      incline: this.handleEvent(
+        beat,
+        layerIndex,
+        extended.inclineEvents,
+        this._curIncline,
+        false,
+      ) as number | undefined,
       scaleX: this.handleEvent(beat, layerIndex, extended.scaleXEvents, this._curScaleX) as
         | number
         | undefined,
       scaleY: this.handleEvent(beat, layerIndex, extended.scaleYEvents, this._curScaleY) as
         | number
         | undefined,
-      text: this.handleEvent(beat, layerIndex, extended.textEvents, this._curText) as
+      text: this.handleEvent(beat, layerIndex, extended.textEvents, this._curText, false) as
         | string
         | undefined,
     };
@@ -595,11 +617,19 @@ export class Line {
   }
 
   setVisible(visible: boolean) {
+<<<<<<< HEAD
     [
       !this._hasAttach || this._data.appearanceOnAttach ? this._line : undefined,
       ...Object.values(this._noteContainers),
     ].forEach((obj) => {
       obj?.setVisible(visible);
     });
+=======
+    [!this._hasAttach ? this._line : undefined, ...Object.values(this._noteContainers)].forEach(
+      (obj) => {
+        obj?.setVisible(visible);
+      },
+    );
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
   }
 }

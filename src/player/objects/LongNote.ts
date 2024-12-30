@@ -272,9 +272,13 @@ export class LongNote extends GameObjects.Container {
   }
 
   public get zIndex() {
+<<<<<<< HEAD
     return this._data.zIndex !== undefined
       ? this._data.zIndex
       : NOTE_PRIORITIES[this._data.type] + 2;
+=======
+    return this._data.zIndex ?? NOTE_PRIORITIES[this._data.type] + 2;
+>>>>>>> ba1071f1fa0f16652885b275feeb9e9b837f3e63
   }
 
   public get line() {
