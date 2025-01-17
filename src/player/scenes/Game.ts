@@ -3,7 +3,6 @@ import { EventBus } from '../EventBus';
 import {
   processIllustration,
   loadJson,
-  isEqual,
   toBeats,
   fit,
   getAudio,
@@ -11,6 +10,7 @@ import {
   calculatePrecedences,
   loadText,
   getSpritesheet,
+  findHighlightMoments,
 } from '../utils';
 import {
   GameStatus,
@@ -168,8 +168,8 @@ export class Game extends Scene {
 
     this.load.image('asset-line.png', 'line.png');
     this.load.spritesheet('hit-effects', 'HitEffects.png', {
-      frameWidth: 350,
-      frameHeight: 350,
+      frameWidth: 256,
+      frameHeight: 256,
     });
 
     const { song, chart, illustration, assetNames, assetTypes, assets } = this._data.resources;
@@ -556,8 +556,11 @@ export class Game extends Scene {
     });
 
     const precedences = calculatePrecedences(this._chart.judgeLineList.map((data) => data.zOrder));
+    const moments = findHighlightMoments(
+      this._chart.judgeLineList.map((line) => line.notes ?? []).flat(),
+    );
     this._lines = this._chart.judgeLineList.map(
-      (data, i) => new Line(this, data, i, precedences.get(data.zOrder)!),
+      (data, i) => new Line(this, data, i, precedences.get(data.zOrder)!, moments),
     );
   }
 
@@ -575,23 +578,6 @@ export class Game extends Scene {
           : a.note.startBeat - b.note.startBeat,
       );
     this._numberOfNotes = this._notes.length;
-    const moments: number[][] = [];
-    let lastMoment = [-Infinity, 0, 0];
-    notes.forEach((note) => {
-      const cur = note.note.startTime;
-      if (isEqual(cur, lastMoment) && !isEqual(cur, moments.at(-1))) {
-        moments.push(cur);
-      } else {
-        lastMoment = cur;
-      }
-    });
-    moments.forEach((moment) => {
-      notes
-        .filter((note) => isEqual(note.note.startTime, moment))
-        .forEach((note) => {
-          note.setHighlight(this._data.preferences.simultaneousNoteHint);
-        });
-    });
     this._lines
       .filter((line) => line.data.father != -1)
       .forEach((line) => {
@@ -645,7 +631,6 @@ export class Game extends Scene {
     this._shaders = this._extra.effects.map((effect, i) => {
       const asset = this._shaderAssets.find((asset) => asset.key === effect.shader);
       if (!asset) {
-        this._status = GameStatus.ERROR;
         if (!missing.includes(effect.shader)) {
           missing.push(effect.shader);
           alert(`Unable to locate external shader ${effect.shader.slice(6)}`);
@@ -696,8 +681,11 @@ export class Game extends Scene {
     const signalHandler = new SignalHandler(this._extra.videos.length);
     this._videos = this._extra.videos.map(
       (data) =>
-        new Video(this, data, () => {
+        new Video(this, data, (success: boolean) => {
           signalHandler.emit();
+          if (!success) {
+            alert(`Failed to load video ${data.path}. See console for details.`);
+          }
         }),
     );
     await signalHandler.wait();
@@ -723,7 +711,7 @@ export class Game extends Scene {
   }
 
   o(offset: number) {
-    return (-offset / 900) * this.sys.canvas.height;
+    return (offset / 900) * this.sys.canvas.height;
   }
 
   d(distance: number) {

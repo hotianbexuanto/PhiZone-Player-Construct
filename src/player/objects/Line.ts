@@ -18,6 +18,7 @@ import {
   rgbToHex,
   toBeats,
   processControlNodes,
+  isEqual,
 } from '../utils';
 import type { Game } from '../scenes/Game';
 import { FONT_FAMILY } from '../constants';
@@ -72,7 +73,13 @@ export class Line {
 
   private _lastUpdate: number = -Infinity;
 
-  constructor(scene: Game, lineData: JudgeLine, num: number, precedence: number) {
+  constructor(
+    scene: Game,
+    lineData: JudgeLine,
+    num: number,
+    precedence: number,
+    highlightMoments: [number, number, number][],
+  ) {
     this._scene = scene;
     this._num = num;
     this._data = lineData;
@@ -97,7 +104,9 @@ export class Line {
     this._hasAttach = !!this._data.attachUI;
     this._line.setScale(
       this._scene.p(1) * (this._scaleX ?? 1),
-      this._scene.p(1) * (this._scaleY ?? 1),
+      (this._hasCustomTexture
+        ? this._scene.p(1)
+        : this._scene.o(1.35) * this._scene.preferences.lineThickness) * (this._scaleY ?? 1),
     ); // previously 1.0125 (according to the official definition that a line is 3 times as wide as the screen)
     this._line.setDepth(lineData.zIndex !== undefined ? lineData.zIndex : 2 + precedence);
     this._line.setVisible(!this._hasAttach || !!lineData.appearanceOnAttach || this._hasText);
@@ -166,12 +175,13 @@ export class Line {
       this._data.notes.sort((a, b) => a.startBeat - b.startBeat);
       this._data.notes.forEach((data) => {
         let note: PlainNote | LongNote;
+        const highlight = highlightMoments.some((moment) => isEqual(moment, data.startTime));
         if (data.type === 2) {
-          note = new LongNote(scene, data);
+          note = new LongNote(scene, data, highlight);
           note.setHeadHeight(this.calculateHeight(data.startBeat));
           note.setTailHeight(this.calculateHeight(data.endBeat));
         } else {
-          note = new PlainNote(scene, data);
+          note = new PlainNote(scene, data, highlight);
           note.setHeight(this.calculateHeight(data.startBeat));
         }
         this.addNote(note, this._noteContainers[note.zIndex] ?? this.createContainer(note.zIndex));
@@ -211,7 +221,9 @@ export class Line {
   updateParams() {
     this._line.setScale(
       this._scene.p(1) * (this._scaleX ?? 1),
-      this._scene.p(1) * (this._scaleY ?? 1),
+      (this._hasCustomTexture
+        ? this._scene.p(1)
+        : this._scene.o(1.35) * this._scene.preferences.lineThickness) * (this._scaleY ?? 1),
     );
     if (this._hasText) (this._line as GameObjects.Text).setText(this._text ?? '');
     if (this._hasAnimatedTexture) {
@@ -319,7 +331,7 @@ export class Line {
     const halfScreenWidth = this._scene.sys.canvas.width / 2;
     const halfScreenHeight = this._scene.sys.canvas.height / 2;
     let x = this._scene.p(this._xModifier * this._x);
-    let y = this._scene.o(this._yModifier * this._y);
+    let y = this._scene.o(-this._yModifier * this._y);
     if (this._parent !== null) {
       const parentX = this._parent.x - halfScreenWidth;
       const parentY = this._parent.y - halfScreenHeight;

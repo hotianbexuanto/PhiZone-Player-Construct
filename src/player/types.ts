@@ -11,6 +11,7 @@ export interface Config {
   record: boolean;
   autostart: boolean;
   newTab: boolean;
+  inApp: number;
 }
 
 export interface Resources {
@@ -41,6 +42,7 @@ export interface Preferences {
   fcApIndicator: boolean;
   goodJudgment: number;
   hitSoundVolume: number;
+  lineThickness: number;
   musicVolume: number;
   noteSize: number;
   perfectJudgment: number;

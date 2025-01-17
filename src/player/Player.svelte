@@ -14,7 +14,15 @@
   import start from './main';
   import { EventBus } from './EventBus';
   import { GameStatus, type Config } from './types';
-  import { convertTime, findPredominantBpm, getParams, getTimeSec, outputRecording } from './utils';
+  import {
+    convertTime,
+    findPredominantBpm,
+    getParams,
+    getTimeSec,
+    IS_TAURI,
+    outputRecording,
+    triggerDownload,
+  } from './utils';
   import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { ProgressBarStatus } from '@tauri-apps/api/window';
   import WaveSurfer, { type WaveSurferOptions } from 'wavesurfer.js';
@@ -30,7 +38,7 @@
 
   config ??= getParams();
   if (!config) {
-    goto('__TAURI_INTERNALS__' in window ? `/?t=${Date.now()}` : '/');
+    goto(IS_TAURI ? `/?t=${Date.now()}` : '/');
   }
 
   let progress = 0;
@@ -202,7 +210,7 @@
 
     EventBus.on('update', (t: number) => {
       if (t !== timeSec) {
-        if ('__TAURI_INTERNALS__' in window) {
+        if (IS_TAURI) {
           if (t < duration) {
             getCurrentWebviewWindow().setProgressBar({
               status:
@@ -237,7 +245,7 @@
 
     EventBus.on('finished', () => {
       status = GameStatus.FINISHED;
-      if ('__TAURI_INTERNALS__' in window) {
+      if (IS_TAURI) {
         getCurrentWebviewWindow().setProgressBar({
           status: ProgressBarStatus.None,
         });
@@ -258,20 +266,19 @@
   });
 
   const exit = () => {
-    const isTauri = '__TAURI_INTERNALS__' in window;
-    if (isTauri) {
+    if (IS_TAURI) {
       getCurrentWebviewWindow().setProgressBar({
         status: ProgressBarStatus.None,
       });
     }
     if (!config || config.newTab) {
-      if (isTauri) {
+      if (IS_TAURI) {
         getCurrentWebviewWindow().close();
       } else {
         window.close();
       }
     } else {
-      goto(isTauri ? `/?t=${Date.now()}` : '/');
+      goto(IS_TAURI ? `/?t=${Date.now()}` : '/');
     }
   };
 
@@ -321,12 +328,10 @@
       }
       return value;
     });
-    const blob = new Blob([content], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.download = `${title} [${level}] (offset ${offset >= 0 ? '+' : '-'}${Math.abs(offset).toFixed(0)}).json`;
-    link.href = URL.createObjectURL(blob);
-    link.click();
-    URL.revokeObjectURL(link.href);
+    triggerDownload(
+      new Blob([content], { type: 'application/json' }),
+      `${title} [${level}] (offset ${offset >= 0 ? '+' : '-'}${Math.abs(offset).toFixed(0)}).json`,
+    );
     isOffsetAdjustedChartExported = true;
   };
 </script>

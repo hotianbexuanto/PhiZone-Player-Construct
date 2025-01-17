@@ -91,6 +91,8 @@ const easingFunctions: ((x: number) => number)[] = [
     x < 0.5 ? (1 - easingFunctions[25](1 - 2 * x)) / 2 : (1 + easingFunctions[25](2 * x - 1)) / 2,
 ];
 
+export const IS_TAURI = '__TAURI_INTERNALS__' in window;
+
 const download = async (url: string, name?: string) => {
   EventBus.emit('loading', 0);
   EventBus.emit(
@@ -129,7 +131,13 @@ export const setFullscreen = () => {
   }
 };
 
-export const inferLevelType = (level: string | null): 0 | 1 | 2 | 3 => {
+export const haveSameKeys = (obj1: object, obj2: object): boolean => {
+  const keys1 = Object.keys(obj1).sort();
+  const keys2 = Object.keys(obj2).sort();
+  return JSON.stringify(keys1) === JSON.stringify(keys2);
+};
+
+export const inferLevelType = (level: string | null): 0 | 1 | 2 | 3 | 4 => {
   if (!level) return 2;
   level = level.toLowerCase();
   if (level.includes(' ')) {
@@ -138,6 +146,7 @@ export const inferLevelType = (level: string | null): 0 | 1 | 2 | 3 => {
   if (['ez', 'easy'].includes(level)) return 0;
   if (['hd', 'easy'].includes(level)) return 1;
   if (['at', 'another'].includes(level)) return 3;
+  if (['sp', 'special'].includes(level)) return 4;
   return 2;
 };
 
@@ -156,7 +165,7 @@ export const getParams = (url?: string, loadFromStorage = true): Config | null =
   const illustrator = searchParams.get('illustrator');
   const level = searchParams.get('level');
   const levelType =
-    (clamp(parseInt(searchParams.get('levelType') ?? '2'), 0, 3) as 0 | 1 | 2 | 3) ??
+    (clamp(parseInt(searchParams.get('levelType') ?? '2'), 0, 4) as 0 | 1 | 2 | 3 | 4) ??
     inferLevelType(level);
   const difficulty = searchParams.get('difficulty');
 
@@ -168,6 +177,7 @@ export const getParams = (url?: string, loadFromStorage = true): Config | null =
   const fcApIndicator = ['1', 'true'].some((v) => v == (searchParams.get('fcApIndicator') ?? '1'));
   const goodJudgment = parseInt(searchParams.get('goodJudgment') ?? '160');
   const hitSoundVolume = parseFloat(searchParams.get('hitSoundVolume') ?? '1');
+  const lineThickness = parseFloat(searchParams.get('lineThickness') ?? '1');
   const musicVolume = parseFloat(searchParams.get('musicVolume') ?? '1');
   const noteSize = parseFloat(searchParams.get('noteSize') ?? '1');
   const perfectJudgment = parseInt(searchParams.get('perfectJudgment') ?? '80');
@@ -190,6 +200,7 @@ export const getParams = (url?: string, loadFromStorage = true): Config | null =
   const record = ['1', 'true'].some((v) => v == searchParams.get('record'));
   const autostart = ['1', 'true'].some((v) => v == searchParams.get('autostart'));
   const newTab = ['1', 'true'].some((v) => v == searchParams.get('newTab'));
+  const inApp = parseInt(searchParams.get('inApp') ?? '0');
   if (!song || !chart || !illustration || assetNames.length < assets.length) {
     if (!loadFromStorage) return null;
     const storageItem = localStorage.getItem('player');
@@ -222,6 +233,7 @@ export const getParams = (url?: string, loadFromStorage = true): Config | null =
       fcApIndicator,
       goodJudgment,
       hitSoundVolume,
+      lineThickness,
       musicVolume,
       noteSize,
       perfectJudgment,
@@ -242,6 +254,7 @@ export const getParams = (url?: string, loadFromStorage = true): Config | null =
     record,
     autostart,
     newTab,
+    inApp,
   };
 };
 
@@ -370,9 +383,9 @@ export const getLineColor = (scene: Game): number => {
     : FcApStatus.NONE;
   switch (status) {
     case FcApStatus.AP:
-      return 0xffffb4;
+      return 0xfeffa9;
     case FcApStatus.FC:
-      return 0xb3ecff;
+      return 0xa2eeff;
     default:
       return 0xffffff;
   }
@@ -381,10 +394,10 @@ export const getLineColor = (scene: Game): number => {
 export const getJudgmentColor = (type: JudgmentType): number => {
   switch (type) {
     case JudgmentType.PERFECT:
-      return 0xffeda2;
+      return 0xffec9f;
     case JudgmentType.GOOD_EARLY:
     case JudgmentType.GOOD_LATE:
-      return 0xb6e1ff;
+      return 0xb4e1ff;
     case JudgmentType.BAD:
       return 0x6b3b3a;
     default:
@@ -485,7 +498,8 @@ export const getControlValue = (
     | { type: 'skew'; payload: SkewControl[] }
     | { type: 'y'; payload: YControl[] },
 ): number => {
-  const currentIndex = control.payload.findLastIndex((node) => node.x >= x) ?? 0;
+  let currentIndex = control.payload.findLastIndex((node) => node.x >= x);
+  if (currentIndex === -1) currentIndex = 0;
   const nextIndex = currentIndex + 1 < control.payload.length ? currentIndex + 1 : currentIndex;
   return calculateValue(
     control.payload[currentIndex][control.type as keyof (typeof control.payload)[number]],
@@ -598,6 +612,22 @@ export function findPredominantBpm(bpmList: Bpm[], endTimeSec: number) {
 
   return predominantBpm.bpm;
 }
+
+export const findHighlightMoments = (notes: { startTime: [number, number, number] }[]) => {
+  const moments: [number, number, number][] = [];
+  let lastMoment = [-Infinity, 0, 0];
+  notes
+    .sort((a, b) => toBeats(a.startTime) - toBeats(b.startTime))
+    .forEach((note) => {
+      const cur = note.startTime;
+      if (isEqual(cur, lastMoment) && !isEqual(cur, moments.at(-1))) {
+        moments.push(cur);
+      } else {
+        lastMoment = cur;
+      }
+    });
+  return moments;
+};
 
 export const isPerfectOrGood = (type: JudgmentType) => {
   return (

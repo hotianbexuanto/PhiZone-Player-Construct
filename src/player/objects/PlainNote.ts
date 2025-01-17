@@ -23,8 +23,8 @@ export class PlainNote extends SkewImage {
   private _hasTapInput: boolean = false;
   private _consumeTap: boolean = true;
 
-  constructor(scene: Game, data: Note, x: number = 0, y: number = 0, highlight: boolean = false) {
-    super(scene, x, y, `${data.type}${highlight ? '-hl' : ''}`);
+  constructor(scene: Game, data: Note, highlight: boolean = false) {
+    super(scene, undefined, undefined, `${data.type}${highlight ? '-hl' : ''}`);
 
     this._scene = scene;
     this._data = data;
@@ -46,7 +46,7 @@ export class PlainNote extends SkewImage {
   update(beat: number, songTime: number, height: number, visible = true) {
     const dist =
       this._scene.d((this._targetHeight - height) * this._data.speed) +
-      this._scene.o(-this._data.yOffset);
+      this._scene.o(this._data.yOffset);
     const chartDist = (dist / this._scene.sys.canvas.height) * 900;
     this.setX(
       this._scene.p(
@@ -61,11 +61,10 @@ export class PlainNote extends SkewImage {
             chartDist,
       ),
     );
-    this.setSkewDeg(
-      this._xModifier *
+    this.setSkewXDeg(
+      -this._xModifier *
         this._data.positionX *
         getControlValue(chartDist, { type: 'skew', payload: this._line.data.skewControl }),
-      0,
     );
     this._alpha =
       (this._data.alpha *
@@ -97,7 +96,7 @@ export class PlainNote extends SkewImage {
       this.setVisible(
         visible &&
           songTime >= this._hitTime - this._data.visibleTime &&
-          (dist >= this._scene.o(-this._data.yOffset) || !this._line.data.isCover),
+          (dist >= this._scene.o(this._data.yOffset) || !this._line.data.isCover),
       );
     }
   }
@@ -150,10 +149,6 @@ export class PlainNote extends SkewImage {
     }
   }
 
-  setHighlight(highlight: boolean) {
-    this.setTexture(`${this._data.type}${highlight ? '-hl' : ''}`);
-  }
-
   setHeight(height: number) {
     this._targetHeight = height;
   }
@@ -180,7 +175,7 @@ export class PlainNote extends SkewImage {
   }
 
   public get judgmentPosition() {
-    const y = this._yModifier * this._scene.o(-this._data.yOffset);
+    const y = this._yModifier * this._scene.o(this._data.yOffset);
     return {
       x: this._line.x + this.x * Math.cos(this._line.rotation) + y * Math.sin(this._line.rotation),
       y: this._line.y + this.x * Math.sin(this._line.rotation) + y * Math.cos(this._line.rotation),
