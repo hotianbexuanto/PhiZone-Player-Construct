@@ -168,8 +168,8 @@ export class Game extends Scene {
 
     this.load.image('asset-line.png', 'line.png');
     this.load.spritesheet('hit-effects', 'HitEffects.png', {
-      frameWidth: 256,
-      frameHeight: 256,
+      frameWidth: 350,
+      frameHeight: 350,
     });
 
     const { song, chart, illustration, assetNames, assetTypes, assets } = this._data.resources;
