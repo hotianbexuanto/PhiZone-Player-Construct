@@ -1,22 +1,6 @@
-name: Publish with Debug
-run-name: Publish builds with debug targets
+name: Publish
+run-name: Publish release builds
 on:
-  push:
-    branches:
-      - defres
-    paths:
-      - 'src/**'
-      - 'src-tauri/**'
-      - 'static/**'
-      - '.github/workflows/publish-debug.yml'
-  pull_request:
-    branches:
-      - defres
-    paths:
-      - 'src/**'
-      - 'src-tauri/**'
-      - 'static/**'
-      - '.github/workflows/publish-debug.yml'
   workflow_dispatch:
 
 defaults:
@@ -133,9 +117,9 @@ jobs:
 
       - name: Publish release
         run: |
-          gh release create "v${{ needs.metadata.outputs.version }}_${{ needs.metadata.outputs.current-datetime }}" \
-          --title "v${{ needs.metadata.outputs.version }} ${{ needs.metadata.outputs.current-datetime }}" \
-          --notes "Automated release with debug builds. See the assets for downloads." --prerelease \
+          gh release create "v${{ needs.metadata.outputs.version }}" \
+          --title "v${{ needs.metadata.outputs.version }}" \
+          --notes "See the assets for downloads." --draft \
           $RUNNER_TEMP/build/PhiZone.Player_${{ needs.metadata.outputs.version }}.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
@@ -187,24 +171,28 @@ jobs:
         run: if [ -d "./resources" ]; then pnpm i -D @capacitor/assets && pnpm capacitor-assets generate --android; fi
 
       - name: Build app bundle
-        run: cd android && chmod +x ./gradlew && ./gradlew bundle && ./gradlew assembleDebug
+        run: cd android && chmod +x ./gradlew && ./gradlew bundle && ./gradlew assemble
 
       - name: Decode Android signing key
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE }}" > android/release.jks.base64
           base64 -d android/release.jks.base64 > android/release.decoded.jks
 
-      - name: Sign build
-        run: jarsigner -keystore android/release.decoded.jks -storepass "${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" -signedjar ./android/app/build/outputs/bundle/release/PhiZone.Player_${{ needs.metadata.outputs.version }}-signed.aab ./android/app/build/outputs/bundle/release/app-release.aab release
+      - name: Sign builds
+        run: |
+          jarsigner -keystore android/release.decoded.jks -storepass "${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" -signedjar ./android/app/build/outputs/bundle/release/PhiZone.Player_${{ needs.metadata.outputs.version }}-signed.aab ./android/app/build/outputs/bundle/release/app-release.aab release
 
       - name: Rename build file
-        run: mv ./android/app/build/outputs/apk/debug/app-debug.apk ./android/app/build/outputs/apk/debug/PhiZone.Player_${{ needs.metadata.outputs.version }}-debug.apk
+        run: |
+          mv ./android/app/build/outputs/apk/debug/app-debug.apk ./android/app/build/outputs/apk/debug/PhiZone.Player_${{ needs.metadata.outputs.version }}.apk
+          mv ./android/app/build/outputs/apk/release/app-release-unsigned.apk ./android/app/build/outputs/apk/release/PhiZone.Player_${{ needs.metadata.outputs.version }}-unsigned.apk
 
       - name: Publish release
         run: |
-          gh release upload "v${{ needs.metadata.outputs.version }}_${{ needs.metadata.outputs.current-datetime }}" \
+          gh release upload "v${{ needs.metadata.outputs.version }}" \
           ./android/app/build/outputs/bundle/release/PhiZone.Player_${{ needs.metadata.outputs.version }}-signed.aab \
-          ./android/app/build/outputs/apk/debug/PhiZone.Player_${{ needs.metadata.outputs.version }}-debug.apk
+          ./android/app/build/outputs/apk/release/PhiZone.Player_${{ needs.metadata.outputs.version }}-unsigned.apk \
+          ./android/app/build/outputs/apk/debug/PhiZone.Player_${{ needs.metadata.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
 
@@ -268,13 +256,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         with:
-          tagName: v${{ needs.metadata.outputs.version }}_${{ needs.metadata.outputs.current-datetime }} # the action automatically replaces \_\_VERSION\_\_ with the app version.
-          releaseName: 'v${{ needs.metadata.outputs.version }} ${{ needs.metadata.outputs.current-datetime }}'
-          # releaseBody: |
-          #   Automated release with debug builds. See the assets for downloads.
-          #   *Debug builds for Linux are not included due to unexpectedly lengthy packaging times.*
-          # includeDebug: ${{ matrix.platform == 'ubuntu-22.04' && 'false' || 'true' }}
-          releaseBody: 'Automated release with debug builds. See the assets for downloads.'
-          includeDebug: true
-          prerelease: true
+          tagName: v${{ needs.metadata.outputs.version }}
+          releaseName: 'v${{ needs.metadata.outputs.version }}'
+          releaseBody: 'See the assets for downloads.'
+          releaseDraft: true
           args: ${{ matrix.args }}

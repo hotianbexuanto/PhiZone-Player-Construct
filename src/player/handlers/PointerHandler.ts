@@ -44,7 +44,7 @@ export class PointerHandler {
     //   targets: [
     //     this._scene.add.circle(position.x, position.y, 36, 0x1cd6ce).setDepth(100),
     //     this._scene.add
-    //       .text(position.x, position.y, (pointer.id % 100).toString(), { fontSize: 24 })
+    //       .bitmapText(position.x, position.y, 'Outfit', (pointer.id % 100).toString(), 24)
     //       .setOrigin(0.5, 0.5)
     //       .setDepth(101),
     //   ],
@@ -87,7 +87,7 @@ export class PointerHandler {
     //       )
     //       .setDepth(100),
     //     this._scene.add
-    //       .text(position.x, position.y, velocityMagnitude.toFixed(1), { fontSize: 24 })
+    //       .bitmapText(position.x, position.y, 'Outfit', velocityMagnitude.toFixed(1), 24)
     //       .setOrigin(0.5, 0.5)
     //       .setDepth(100),
     //   ],
@@ -98,7 +98,7 @@ export class PointerHandler {
     if (
       velocityMagnitude < FLICK_VELOCTY_THRESHOLD ||
       (this._pointerDrags[index].velocityConsumed &&
-        this._pointerDrags[index].velocityConsumed.dot(velocity) < 0.5)
+        this._pointerDrags[index].velocityConsumed.dot(velocity) < 0.6)
     ) {
       this._pointerDrags[index].velocityConsumed = null;
     }
